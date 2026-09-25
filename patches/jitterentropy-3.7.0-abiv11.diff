@@ -1,0 +1,13 @@
+--- a/jitterentropy-base-user.h	2026-05-04 14:40:39
++++ b/jitterentropy-base-user.h	2026-09-25 11:49:25
+@@ -409,6 +409,10 @@
+ 	return FIPS_mode();
+ #elif defined(OPENSSL)
+ 	return EVP_default_properties_is_fips_enabled(NULL);
++#elif defined(__AROS__)
++	/* No FIPS mode switch on AROS, and opening a /proc path makes it ask
++	   the user to insert a volume named "proc". */
++	return 0;
+ #else
+ #define FIPS_MODE_SWITCH_FILE "/proc/sys/crypto/fips_enabled"
+ 	char buf[2] = "0";

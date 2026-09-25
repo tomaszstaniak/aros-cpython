@@ -1,0 +1,27 @@
+From 274ee8ae37a2e384f3183dc6ddf47a6148ad0e4f Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 14:51:05 +0200
+Subject: [PATCH 19/22] aros: subprocess importable without fork and exec
+
+ABIv11 has neither fork() nor execve(), so _posixsubprocess is not
+built, and import subprocess failed. That took pip, venv, asyncio, pdb,
+doctest, imaplib, webbrowser and ensurepip with it, as measured on the
+guest. AROS joins the platforms on which subprocess imports and Popen
+raises OSError.
+---
+ Lib/subprocess.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Lib/subprocess.py b/Lib/subprocess.py
+index 52b7b71..b1be211 100644
+--- a/Lib/subprocess.py
++++ b/Lib/subprocess.py
+@@ -75,7 +75,7 @@ else:
+     _mswindows = True
+ 
+ # some platforms do not support subprocesses
+-_can_fork_exec = sys.platform not in {"emscripten", "wasi", "ios", "tvos", "watchos"}
++_can_fork_exec = sys.platform not in {"emscripten", "wasi", "ios", "tvos", "watchos", "aros"}
+ 
+ if _mswindows:
+     import _winapi

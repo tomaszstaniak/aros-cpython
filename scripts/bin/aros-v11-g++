@@ -1,0 +1,8 @@
+#!/bin/sh
+# x86_64-aros-g++ with the ABIv11 2026.09 SDK as sysroot (see scripts/env.sh).
+# The prefix maps keep the host's build paths out of the binaries (__FILE__,
+# debug information): the working tree is recorded as /work, the repository
+# as /src. The later map wins where both match (the working tree is inside
+# the repository by default).
+exec "$AROS_TOOLCHAIN/x86_64-aros-g++" --sysroot="$AROS_SDK" \
+    -ffile-prefix-map="$REPO"=/src -ffile-prefix-map="$WORK"=/work "$@"

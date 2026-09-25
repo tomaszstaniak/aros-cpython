@@ -1,0 +1,37 @@
+#!/bin/sh
+# pkg-config for the ABIv11 cross build. It knows two packages, openssl and
+# liblzma, and answers with full paths to the builds in $DEPS: the compiler
+# driver searches the SDK's lib directory before any -L, and the SDK has its
+# own libssl.a/libcrypto.a (1.1.0h) and a liblzma.a of stubs for a
+# decoder-only system library, so -lssl -lcrypto -llzma would link those.
+# -lnet comes after libcrypto because libcrypto uses SocketBase, which libnet
+# defines. Every other query fails, so nothing from the host leaks in.
+pkg=; mode=
+for a do
+    case $a in
+        --version) echo 0.29.2; exit 0 ;;
+        --atleast-pkgconfig-version*) exit 0 ;;
+        --exists|--print-errors|--short-errors|--errors-to-stdout) ;;
+        --modversion) mode=version ;;
+        --cflags|--cflags-only-I) mode=cflags ;;
+        --libs-only-L|--libs-only-other) mode=none ;;
+        --libs|--libs-only-l) mode=libs ;;
+        --*) ;;
+        *) pkg=${pkg:-$a} ;;
+    esac
+done
+case $pkg in
+    openssl|openssl\ *)
+        version=4.0.1
+        libs="$DEPS/lib/libssl.a $DEPS/lib/libcrypto.a $DEPS/lib/libjitterentropy.a -lnet -lpthread" ;;
+    liblzma|liblzma\ *)
+        version=5.8.3
+        libs="$DEPS/lib/liblzma.a" ;;
+    *) exit 1 ;;
+esac
+case $mode in
+    version) echo $version ;;
+    cflags) echo "-I$DEPS/include" ;;
+    libs) echo "$libs" ;;
+esac
+exit 0

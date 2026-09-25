@@ -1,0 +1,37 @@
+From 6d346dc864461c73829eb2b638b19f2d56de99e1 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:08:49 +0200
+Subject: [PATCH 06/22] aros: pickle opcodes FLOAT, LONG and GLOBAL
+
+The ABIv11 exec/types.h, which reaches _pickle.c through the system
+headers, typedefs FLOAT and LONG and defines GLOBAL as a macro, so the
+pickle opcode enum does not compile. Include it first with the two
+typedefs renamed, and undefine GLOBAL.
+---
+ Modules/_pickle.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/Modules/_pickle.c b/Modules/_pickle.c
+index 531ec75..550266b 100644
+--- a/Modules/_pickle.c
++++ b/Modules/_pickle.c
+@@ -8,6 +8,19 @@
+ #  define Py_BUILD_CORE_MODULE 1
+ #endif
+ 
++#ifdef __AROS__
++/* exec/types.h typedefs FLOAT and LONG, which collide with the pickle
++   opcodes of the same names in the enum below. Pull the header in first
++   with those two renamed; later includes hit its guard. */
++#  define FLOAT aros_exec_FLOAT
++#  define LONG aros_exec_LONG
++#  include <exec/types.h>
++#  undef FLOAT
++#  undef LONG
++/* ...and it defines GLOBAL as a macro for extern; the GLOBAL opcode needs
++   the bare name. */
++#  undef GLOBAL
++#endif
+ #include "Python.h"
+ #include "pycore_bytesobject.h"   // _PyBytesWriter
+ #include "pycore_ceval.h"         // _Py_EnterRecursiveCall()

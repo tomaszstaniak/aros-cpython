@@ -1,0 +1,89 @@
+From 4c1bc2b3a0e038e182febea2f874dc050a802a36 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:26:46 +0200
+Subject: [PATCH 12/22] aros: os.urandom() from OpenSSL's generator
+
+ABIv11 has no operating system entropy source: no getrandom() or
+getentropy() in the C library and no random device, so os.urandom()
+and the startup hash secret have nothing to read. Take the bytes from
+RAND_bytes() of the OpenSSL linked into the interpreter, whose
+generator is seeded from CPU jitter entropy in this build. Seeding
+takes about a second on first use, so the GIL is released when the
+caller allows it. dev_urandom() is not built.
+---
+ Python/bootstrap_hash.c | 41 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 41 insertions(+)
+
+diff --git a/Python/bootstrap_hash.c b/Python/bootstrap_hash.c
+index f0fb87c..26d00fe 100644
+--- a/Python/bootstrap_hash.c
++++ b/Python/bootstrap_hash.c
+@@ -298,6 +298,7 @@ py_getentropy(char *buffer, Py_ssize_t size, int raise)
+    If the file descriptor was closed or replaced, open a new file descriptor
+    but don't close the old file descriptor: it probably points to something
+    important for some third-party code. */
++#ifndef __AROS__  /* no /dev/urandom on ABIv11 AROS; see aros_urandom() */
+ static int
+ dev_urandom(char *buffer, Py_ssize_t size, int raise)
+ {
+@@ -395,6 +396,7 @@ dev_urandom(char *buffer, Py_ssize_t size, int raise)
+     }
+     return 0;
+ }
++#endif /* !__AROS__ */
+ 
+ static void
+ dev_urandom_close(void)
+@@ -474,6 +476,43 @@ lcg_urandom(unsigned int x0, unsigned char *buffer, size_t size)
+      a function fails with EINTR: retry directly the interrupted function
+    - Don't release the GIL to call functions.
+ */
++#ifdef __AROS__
++/* ABIv11 AROS has no operating system entropy source: no getrandom() or
++   getentropy() and no /dev/urandom. Use OpenSSL's CSPRNG, which is linked
++   into the interpreter and seeded from CPU jitter entropy
++   (jitterentropy-library) in this build. The first call seeds it, which
++   takes about a second, so the GIL is released when allowed. */
++#include <openssl/rand.h>
++
++static int
++aros_urandom(void *buffer, Py_ssize_t size, int raise)
++{
++    int ok = 1;
++
++    while (size > 0 && ok) {
++        int chunk = size > INT_MAX ? INT_MAX : (int)size;
++        if (raise) {
++            Py_BEGIN_ALLOW_THREADS
++            ok = RAND_bytes((unsigned char *)buffer, chunk) == 1;
++            Py_END_ALLOW_THREADS
++        }
++        else {
++            ok = RAND_bytes((unsigned char *)buffer, chunk) == 1;
++        }
++        buffer = (char *)buffer + chunk;
++        size -= chunk;
++    }
++    if (!ok) {
++        if (raise) {
++            PyErr_SetString(PyExc_OSError,
++                            "no random bytes from OpenSSL's generator");
++        }
++        return -1;
++    }
++    return 0;
++}
++#endif
++
+ static int
+ pyurandom(void *buffer, Py_ssize_t size, int blocking, int raise)
+ {
+@@ -495,6 +534,8 @@ pyurandom(void *buffer, Py_ssize_t size, int blocking, int raise)
+ 
+ #ifdef MS_WINDOWS
+     return win32_urandom((unsigned char *)buffer, size, raise);
++#elif defined(__AROS__)
++    return aros_urandom(buffer, size, raise);
+ #else
+ 
+ #if defined(PY_GETRANDOM) || defined(PY_GETENTROPY)

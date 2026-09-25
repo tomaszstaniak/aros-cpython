@@ -1,0 +1,16 @@
+# Interpreter provenance - CPython 3.14.7 for AROS x86_64 ABIv11, release 0.1.0.
+# key=value lines are read by scripts/build-package.sh, which refuses to
+# package a binary whose SHA-256 differs from interpreter_sha256.
+interpreter_sha256=6cdd0f6072c58dd5b63c5f977400ba60bfb820b03afc9e4daa2728b9cb1ebe48
+python_version=3.14.7
+build_stamp=main, Sep 25 2026, 00:00:00
+build=built from this repository with scripts/fetch-sources.sh, prepare-source.sh, build-deps.sh, configure.sh, build.sh, then x86_64-aros-strip --strip-debug (scripts/build-package.sh); SOURCE_DATE_EPOCH=1790294400 fixes the build time, so a rebuild with the same compiler gives the same file
+compiler=GCC 10.5.0 (x86_64-aros-gcc from deadwood2/AROS tag ABIv11_2026.09, make crosstools), --sysroot set to the SDK below
+platform=sys.platform aros; sysconfig platform aros_abiv11-x86_64
+abi=ABIv11; SOABI cpython-314-x86_64-aros-abiv11; MULTIARCH x86_64-aros-abiv11
+cpython=Python-3.14.7.tar.xz, SHA-256 3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81, plus patches/cpython 0001-0022
+aros_sdk=SDK-202609-any-x86_64.zip from deadwood2/AROS release ABIv11_2026.09, SHA-256 8a4e5f09f027844501c1421bd3948c4e55ceb005a16b0bd3575276f40c8977e6
+openssl=4.0.1, openssl-4.0.1.tar.gz SHA-256 2db3f3a0d6ea4b59e1f094ace2c8cd536dffb87cdc39084c5afa1e6f7f37dd09, plus patches/openssl-4.0.1-abiv11.diff
+jitterentropy=3.7.0, jitterentropy-v3.7.0.tar.gz SHA-256 f5eaccc9d2977c83308651be9379f09f34348398f419e8f8b5bbd95928c777ed, plus patches/jitterentropy-3.7.0-abiv11.diff
+liblzma=xz 5.8.3, xz-5.8.3.tar.gz SHA-256 3d3a1b973af218114f4f889bbaa2f4c037deaae0c8e815eec381c3d546b974a0, unmodified
+recipe=scripts/build-deps.sh, scripts/configure.sh with config/config.site, scripts/build.sh

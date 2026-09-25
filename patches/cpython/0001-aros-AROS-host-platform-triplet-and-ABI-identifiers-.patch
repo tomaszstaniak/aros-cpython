@@ -1,0 +1,207 @@
+From 0c2e1365760a080bf4df90bd650cd1d6ac68cc55 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:01:27 +0200
+Subject: [PATCH 01/22] aros: AROS host, platform triplet and ABI identifiers
+ (abiv11)
+
+configure refuses the host ("cross build not supported for
+x86_64-pc-aros"). Recognise *-*-aros as ac_sys_system AROS, name the
+platform triplet x86_64-aros, and make the ABI part of MULTIARCH, SOABI,
+_PYTHON_HOST_PLATFORM and sysconfig.get_platform(), so that modules and
+wheels for the two AROS ABIs never match. The builder names the ABI
+(AROS_ABI=abiv11) and gives the value the system records (ENV:ABI 11);
+configure accepts only known pairs.
+---
+ Lib/sysconfig/__init__.py |  4 ++++
+ Makefile.pre.in           |  1 +
+ Misc/platform_triplet.c   | 10 ++++++++++
+ configure                 | 37 +++++++++++++++++++++++++++++++++++++
+ configure.ac              | 30 ++++++++++++++++++++++++++++++
+ 5 files changed, 82 insertions(+)
+
+diff --git a/Lib/sysconfig/__init__.py b/Lib/sysconfig/__init__.py
+index faf8273..53b4851 100644
+--- a/Lib/sysconfig/__init__.py
++++ b/Lib/sysconfig/__init__.py
+@@ -712,6 +712,10 @@ def get_platform():
+             "i686": "x86",
+             "x86_64": "x86_64",
+         }[machine]
++    elif osname == "aros" or osname.startswith("aros_"):
++        # The two AROS ABIs share the OS name and the toolchain triplet but
++        # not binaries, so the ABI takes the place of the OS release.
++        return f"aros_{get_config_var('AROS_ABI')}-{machine}"
+     elif osname == "linux":
+         # At least on Linux/Intel, 'machine' is the processor --
+         # i386, etc.
+diff --git a/Makefile.pre.in b/Makefile.pre.in
+index 526d500..abcb0b4 100644
+--- a/Makefile.pre.in
++++ b/Makefile.pre.in
+@@ -135,6 +135,7 @@ MACHDEP=	@MACHDEP@
+ 
+ # Multiarch directory (may be empty)
+ MULTIARCH=	@MULTIARCH@
++AROS_ABI=	@AROS_ABI@
+ MULTIARCH_CPPFLAGS = @MULTIARCH_CPPFLAGS@
+ 
+ # Install prefix for architecture-independent files
+diff --git a/Misc/platform_triplet.c b/Misc/platform_triplet.c
+index f5cd73b..79cc0aa 100644
+--- a/Misc/platform_triplet.c
++++ b/Misc/platform_triplet.c
+@@ -285,6 +285,16 @@ PLATFORM_TRIPLET=wasm64-wasi
+ #  else
+ #    error unknown wasm64 platform
+ #  endif
++#elif defined(__AROS__)
++#  if defined(__x86_64__)
++PLATFORM_TRIPLET=x86_64-aros
++#  elif defined(__aarch64__)
++PLATFORM_TRIPLET=aarch64-aros
++#  elif defined(__i386__)
++PLATFORM_TRIPLET=i386-aros
++#  else
++#    error unknown AROS platform
++#  endif
+ #else
+ # error unknown platform triplet
+ #endif
+diff --git a/configure b/configure
+index 2cb22a7..dc35e17 100755
+--- a/configure
++++ b/configure
+@@ -970,6 +970,7 @@ _Py_STACK_GROWS_DOWN
+ MULTIARCH_CPPFLAGS
+ PLATFORM_TRIPLET
+ MULTIARCH
++AROS_ABI
+ ac_ct_CXX
+ CXX
+ EGREP
+@@ -4130,6 +4131,9 @@ then
+ 	*-*-wasi*)
+ 	    ac_sys_system=WASI
+ 	    ;;
++	*-*-aros*)
++	    ac_sys_system=AROS
++	    ;;
+ 	*)
+ 		# for now, limit cross builds to known configurations
+ 		MACHDEP="unknown"
+@@ -4634,6 +4638,9 @@ printf "%s\n" "$IPHONEOS_DEPLOYMENT_TARGET" >&6; }
+ 	wasm32-*-* | wasm64-*-*)
+ 		_host_ident=$host_cpu
+ 		;;
++	*-*-aros*)
++		_host_ident=$host_cpu
++		;;
+ 	*)
+ 		# for now, limit cross builds to known configurations
+ 		MACHDEP="unknown"
+@@ -4642,6 +4649,32 @@ printf "%s\n" "$IPHONEOS_DEPLOYMENT_TARGET" >&6; }
+ 	_PYTHON_HOST_PLATFORM="$MACHDEP${_host_ident:+-$_host_ident}"
+ fi
+ 
++# AROS has two ABI lines whose binaries do not interoperate: mainline (ABI v1)
++# and the deadwood2 line that AROS One ships (ABI v11). They use the same
++# toolchain triplet, and neither the compiler nor the SDK headers tell them
++# apart, so the builder names the ABI (AROS_ABI) and passes the value that the
++# SDK's own AROS build recorded (AROS_ABI_MAJOR: aros.library's
++# AROS_ABI_VERSION_MAJOR, written to Prefs/Env-Archive/ABI). Only the pairs
++# below are known; anything else stops configure. -1 is aros.library's "ABI
++# under development" value, which mainline carries (checked at d4a19031); it
++# is accepted only together with an explicit abiv1, never inferred.
++if test "$ac_sys_system" = AROS; then
++  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for the AROS ABI" >&5
++printf %s "checking for the AROS ABI... " >&6; }
++  case $AROS_ABI:$AROS_ABI_MAJOR in #(
++  abiv1:-1) :
++     ;; #(
++  abiv11:11) :
++     ;; #(
++  *) :
++    as_fn_error $? "unknown AROS ABI '$AROS_ABI' with AROS_ABI_MAJOR '$AROS_ABI_MAJOR'; known pairs: AROS_ABI=abiv1 AROS_ABI_MAJOR=-1 (mainline), AROS_ABI=abiv11 AROS_ABI_MAJOR=11 (AROS One)" "$LINENO" 5 ;;
++esac
++  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $AROS_ABI (AROS_ABI_VERSION_MAJOR $AROS_ABI_MAJOR)" >&5
++printf "%s\n" "$AROS_ABI (AROS_ABI_VERSION_MAJOR $AROS_ABI_MAJOR)" >&6; }
++  _PYTHON_HOST_PLATFORM="${MACHDEP}_$AROS_ABI${_host_ident:+-$_host_ident}"
++fi
++
++
+ # Some systems cannot stand _XOPEN_SOURCE being defined at all; they
+ # disable features if it is defined, without any means to access these
+ # features as extensions. For these systems, we skip the definition of
+@@ -7166,6 +7199,10 @@ printf %s "checking for the platform triplet based on compiler characteristics..
+ if $CPP $CPPFLAGS $srcdir/Misc/platform_triplet.c >conftest.out 2>/dev/null; then
+   PLATFORM_TRIPLET=`grep '^PLATFORM_TRIPLET=' conftest.out | tr -d ' 	'`
+   PLATFORM_TRIPLET="${PLATFORM_TRIPLET#PLATFORM_TRIPLET=}"
++  if test "$ac_sys_system" = AROS
++then :
++  PLATFORM_TRIPLET="$PLATFORM_TRIPLET-$AROS_ABI"
++fi
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PLATFORM_TRIPLET" >&5
+ printf "%s\n" "$PLATFORM_TRIPLET" >&6; }
+ else
+diff --git a/configure.ac b/configure.ac
+index 967d34d..fe897c5 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -342,6 +342,9 @@ then
+ 	*-*-wasi*)
+ 	    ac_sys_system=WASI
+ 	    ;;
++	*-*-aros*)
++	    ac_sys_system=AROS
++	    ;;
+ 	*)
+ 		# for now, limit cross builds to known configurations
+ 		MACHDEP="unknown"
+@@ -812,6 +815,9 @@ if test "$cross_compiling" = yes; then
+ 	wasm32-*-* | wasm64-*-*)
+ 		_host_ident=$host_cpu
+ 		;;
++	*-*-aros*)
++		_host_ident=$host_cpu
++		;;
+ 	*)
+ 		# for now, limit cross builds to known configurations
+ 		MACHDEP="unknown"
+@@ -820,6 +826,26 @@ if test "$cross_compiling" = yes; then
+ 	_PYTHON_HOST_PLATFORM="$MACHDEP${_host_ident:+-$_host_ident}"
+ fi
+ 
++# AROS has two ABI lines whose binaries do not interoperate: mainline (ABI v1)
++# and the deadwood2 line that AROS One ships (ABI v11). They use the same
++# toolchain triplet, and neither the compiler nor the SDK headers tell them
++# apart, so the builder names the ABI (AROS_ABI) and passes the value that the
++# SDK's own AROS build recorded (AROS_ABI_MAJOR: aros.library's
++# AROS_ABI_VERSION_MAJOR, written to Prefs/Env-Archive/ABI). Only the pairs
++# below are known; anything else stops configure. -1 is aros.library's "ABI
++# under development" value, which mainline carries (checked at d4a19031); it
++# is accepted only together with an explicit abiv1, never inferred.
++if test "$ac_sys_system" = AROS; then
++  AC_MSG_CHECKING([for the AROS ABI])
++  AS_CASE([$AROS_ABI:$AROS_ABI_MAJOR],
++    [abiv1:-1], [],
++    [abiv11:11], [],
++    [AC_MSG_ERROR([unknown AROS ABI '$AROS_ABI' with AROS_ABI_MAJOR '$AROS_ABI_MAJOR'; known pairs: AROS_ABI=abiv1 AROS_ABI_MAJOR=-1 (mainline), AROS_ABI=abiv11 AROS_ABI_MAJOR=11 (AROS One)])])
++  AC_MSG_RESULT([$AROS_ABI (AROS_ABI_VERSION_MAJOR $AROS_ABI_MAJOR)])
++  _PYTHON_HOST_PLATFORM="${MACHDEP}_$AROS_ABI${_host_ident:+-$_host_ident}"
++fi
++AC_SUBST([AROS_ABI])
++
+ # Some systems cannot stand _XOPEN_SOURCE being defined at all; they
+ # disable features if it is defined, without any means to access these
+ # features as extensions. For these systems, we skip the definition of
+@@ -1154,6 +1180,10 @@ AC_MSG_CHECKING([for the platform triplet based on compiler characteristics])
+ if $CPP $CPPFLAGS $srcdir/Misc/platform_triplet.c >conftest.out 2>/dev/null; then
+   PLATFORM_TRIPLET=`grep '^PLATFORM_TRIPLET=' conftest.out | tr -d ' 	'`
+   PLATFORM_TRIPLET="${PLATFORM_TRIPLET@%:@PLATFORM_TRIPLET=}"
++  dnl AROS: the ABI is part of the platform triplet, so that the sysconfigdata
++  dnl names, SOABI and extension suffixes of the two AROS ABIs never match.
++  AS_IF([test "$ac_sys_system" = AROS],
++    [PLATFORM_TRIPLET="$PLATFORM_TRIPLET-$AROS_ABI"])
+   AC_MSG_RESULT([$PLATFORM_TRIPLET])
+ else
+   AC_MSG_RESULT([none])

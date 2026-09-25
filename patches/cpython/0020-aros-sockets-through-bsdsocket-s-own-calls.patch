@@ -1,0 +1,117 @@
+From 51351bec4eb8c00c448b1c5fdaaf267128576a73 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 15:12:32 +0200
+Subject: [PATCH 20/22] aros: sockets through bsdsocket's own calls
+
+On ABIv11 a bsdsocket.library socket is numbered from 0 like a C library
+file, with no descriptor layer between them: the first socket got 0, the
+number of stdin, and the C library's close(), ioctl(), fcntl() and dup()
+on it acted on the file. ioctl(FIONBIO) and ioctl(FIOCLEX) on a socket
+failed with ENOSYS and fcntl(F_GETFD) answered for stdin
+(tests/c/sockprobe.c on an ABIv11 system). Close with CloseSocket(),
+switch blocking with IoctlSocket(), duplicate with Dup2Socket(), and
+leave _Py_set_inheritable() out for sockets, as nothing on AROS inherits
+them. AROSTCP rejects SOCK_CLOEXEC in the type with errno 43, so the
+EINVAL retry never ran; the flags are not used. sys/ioctl.h is included
+for FIONBIO.
+---
+ Modules/socketmodule.c | 43 ++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 37 insertions(+), 6 deletions(-)
+
+diff --git a/Modules/socketmodule.c b/Modules/socketmodule.c
+index d3cbfd1..fffddc0 100644
+--- a/Modules/socketmodule.c
++++ b/Modules/socketmodule.c
+@@ -203,7 +203,8 @@ shutdown(how) -- shut down traffic in one or both directions\n\
+ # define USE_GETHOSTBYNAME_LOCK
+ #endif
+ 
+-#if defined(__APPLE__) || defined(__CYGWIN__) || defined(__NetBSD__)
++#if defined(__APPLE__) || defined(__CYGWIN__) || defined(__NetBSD__) \
++    || defined(__AROS__)
+ #  include <sys/ioctl.h>
+ #endif
+ 
+@@ -432,6 +433,27 @@ remove_unusable_flags(PyObject *m)
+ 
+ #endif
+ 
++#ifdef __AROS__
++/* ABIv11 AROS has no descriptor layer shared by files and sockets. A
++   bsdsocket.library socket is numbered from 0 like a C library file (the
++   first socket got 0, the number of stdin), and the C library's close(),
++   ioctl(), fcntl() and dup() on that number act on the C library file.
++   Measured: ioctl(FIONBIO) and ioctl(FIOCLEX) on a socket failed with
++   ENOSYS, and fcntl(F_GETFD) answered for stdin. So sockets are closed,
++   switched to non-blocking and duplicated with the socket library's own
++   calls, and never passed to _Py_set_inheritable(): there is no exec to
++   inherit them anyway. AROSTCP rejects the SOCK_CLOEXEC and SOCK_NONBLOCK
++   type flags that sys/socket.h defines, with an errno other than EINVAL, so
++   the retry without them never runs; they are not used. */
++#  undef SOCK_CLOEXEC
++#  undef SOCK_NONBLOCK
++#  define SOCKETCLOSE CloseSocket
++#  define sock_set_noninheritable(fd, atomic_flag_works) 0
++#else
++#  define sock_set_noninheritable(fd, atomic_flag_works) \
++    _Py_set_inheritable((fd), 0, (atomic_flag_works))
++#endif
++
+ #ifdef __AROS__
+ /* ABIv11 AROS: bsdsocket.library has neither inet_pton() nor inet_ntop(),
+    which getaddrinfo.c, getnameinfo.c and the address formatting below use.
+@@ -882,7 +904,11 @@ internal_setblocking(PySocketSockObject *s, int block)
+ 
+     Py_BEGIN_ALLOW_THREADS
+ #ifndef MS_WINDOWS
+-#if (defined(HAVE_SYS_IOCTL_H) && defined(FIONBIO))
++#if defined(__AROS__)
++    block = !block;
++    if (IoctlSocket(get_sock_fd(s), FIONBIO, (char *)&block) == -1)
++        goto done;
++#elif (defined(HAVE_SYS_IOCTL_H) && defined(FIONBIO))
+     block = !block;
+     if (ioctl(get_sock_fd(s), FIONBIO, (unsigned int *)&block) == -1)
+         goto done;
+@@ -3194,7 +3220,7 @@ sock_accept(PyObject *self, PyObject *Py_UNUSED(ignored))
+     if (!_Py_atomic_load_int_relaxed(&accept4_works))
+ #endif
+     {
+-        if (_Py_set_inheritable(newfd, 0, NULL) < 0) {
++        if (sock_set_noninheritable(newfd, NULL) < 0) {
+             SOCKETCLOSE(newfd);
+             goto finally;
+         }
+@@ -5891,7 +5917,7 @@ sock_initobj_impl(PySocketSockObject *self, int family, int type, int proto,
+             return -1;
+         }
+ 
+-        if (_Py_set_inheritable(fd, 0, atomic_flag_works) < 0) {
++        if (sock_set_noninheritable(fd, atomic_flag_works) < 0) {
+             SOCKETCLOSE(fd);
+             return -1;
+         }
+@@ -6581,6 +6607,11 @@ socket_dup(PyObject *self, PyObject *fdobj)
+         closesocket(newfd);
+         return NULL;
+     }
++#elif defined(__AROS__)
++    newfd = Dup2Socket(fd, -1);
++    if (newfd == INVALID_SOCKET) {
++        return set_error();
++    }
+ #else
+     /* On UNIX, dup can be used to duplicate the file descriptor of a socket */
+     newfd = _Py_dup(fd);
+@@ -6660,9 +6691,9 @@ socket_socketpair(PyObject *self, PyObject *args)
+     if (ret < 0)
+         return set_error();
+ 
+-    if (_Py_set_inheritable(sv[0], 0, atomic_flag_works) < 0)
++    if (sock_set_noninheritable(sv[0], atomic_flag_works) < 0)
+         goto finally;
+-    if (_Py_set_inheritable(sv[1], 0, atomic_flag_works) < 0)
++    if (sock_set_noninheritable(sv[1], atomic_flag_works) < 0)
+         goto finally;
+ 
+     s0 = new_sockobject(state, sv[0], family, type, proto);

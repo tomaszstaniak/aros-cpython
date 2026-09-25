@@ -1,0 +1,14 @@
+SQLite 3.48.0 - statically linked from the ABIv11 2026.09 SDK's libsqlite3.a
+(sqlite3.h: SQLITE_SOURCE_ID "2025-01-14 11:05:00 d2fe6b05...")
+SPDX: blessing (public domain)
+
+From the header of sqlite3.h:
+
+  The author disclaims copyright to this source code.  In place of
+  a legal notice, here is a blessing:
+
+     May you do good and not evil.
+     May you find forgiveness for yourself and forgive others.
+     May you share freely, never taking more than you give.
+
+See https://sqlite.org/copyright.html

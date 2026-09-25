@@ -1,0 +1,15 @@
+CA certificate bundle - Python/ssl/ca-bundle.crt
+================================================
+SPDX: MPL-2.0 (the certificate data originates from Mozilla NSS)
+
+This is a bundle of X.509 CA root certificates extracted from Mozilla's root
+certificate store (certdata.txt) using curl's mk-ca-bundle.pl, as published at
+https://curl.se/docs/caextract.html . The certificate data is licensed under
+the Mozilla Public License 2.0 (https://www.mozilla.org/MPL/2.0/).
+
+This exact file: "Certificate data from Mozilla as of: Thu Aug 13 03:12:01
+2026 GMT", 121 certificates, source SHA-256 recorded in the file header.
+
+It is shipped so OpenSSL certificate verification works out of the box; the
+launcher points SSL_CERT_FILE at it (OpenSSL's compiled-in default path is the
+SDK build path, which no target has).

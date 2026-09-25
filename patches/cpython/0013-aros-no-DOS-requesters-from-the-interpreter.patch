@@ -1,0 +1,46 @@
+From ef52645b3478c97434c69bb95eec74b2c03bda2f Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:49:44 +0200
+Subject: [PATCH 13/22] aros: no DOS requesters from the interpreter
+
+On ABIv11 the first run stopped at "Please insert volume proc in any
+drive": a unix path with one leading component names an AmigaDOS
+volume, and a missing one raises a requester and waits for a click.
+CPython probes such paths at startup (the /pyvenv.cfg of site.venv()).
+Set pr_WindowPtr to -1 so that these calls fail at once with ENOENT.
+---
+ Programs/python.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/Programs/python.c b/Programs/python.c
+index 84148f7..4c99a2a 100644
+--- a/Programs/python.c
++++ b/Programs/python.c
+@@ -1,6 +1,11 @@
+ /* Minimal main program -- everything is loaded from the library */
+ 
+ #include "Python.h"
++#ifdef __AROS__
++#  define asm __asm__
++#  include <proto/exec.h>
++#  include <dos/dosextens.h>
++#endif
+ 
+ #ifdef MS_WINDOWS
+ int
+@@ -12,6 +17,15 @@ wmain(int argc, wchar_t **argv)
+ int
+ main(int argc, char **argv)
+ {
++#ifdef __AROS__
++    /* A script interpreter must not stop on DOS requesters. Every unix
++       path with one leading component, such as the /pyvenv.cfg that
++       site.venv() probes at startup, names an AmigaDOS volume, and a
++       missing volume otherwise raises "Please insert volume ..." and waits
++       for a click that never comes. With pr_WindowPtr set to -1 the DOS
++       call fails at once and the stat() answers ENOENT. */
++    ((struct Process *)FindTask(NULL))->pr_WindowPtr = (APTR)-1;
++#endif
+     return Py_BytesMain(argc, argv);
+ }
+ #endif

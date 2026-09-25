@@ -1,0 +1,54 @@
+# Answers configure cannot find out when cross-compiling CPython for ABIv11.
+# Each entry is a claim about ABIv11, checked against the 2026.09 SDK, with
+# its reason next to it.
+ac_cv_file__dev_ptmx=no          # no /dev on AROS
+ac_cv_file__dev_ptc=no
+ac_cv_little_endian_double=yes   # x86_64
+ac_cv_big_endian_double=no
+ac_cv_mixed_endian_double=no
+# libpthread has pthread_getattr_np() but not pthread_attr_getguardsize(),
+# which ceval.c's stack-limit probe needs together with it.
+ac_cv_func_pthread_getattr_np=no
+# Inspects other processes' memory (ptrace-style); nothing like it on AROS,
+# and it needs getpagesize(), which the C library does not have.
+py_cv_module__remote_debugging=n/a
+# sys/file.h declares flock() only #ifndef _POSIX_SOURCE, which the feature
+# macros CPython builds with turn on; configure's test compiles without them.
+# fcntl.flock() then uses CPython's fcntl() based fallback.
+ac_cv_flock_decl=no
+# No fork(), and libcrt has no execve(): no way to start a program with
+# argv, so no subprocess (vfork() alone is not enough).
+py_cv_module__posixsubprocess=n/a
+# sys/resource.h has no RLIM_NLIMITS, and there is no getpagesize().
+py_cv_module_resource=n/a
+# syslog() is a bsdsocket.library call on AROS, not a C library function.
+py_cv_module_syslog=n/a
+# termios.h exists and libcrt has tcgetattr()/tcsetattr(), but not
+# tcsendbreak(), tcdrain(), tcflush() or tcflow(), which the module needs.
+py_cv_module_termios=n/a
+# sem_open() in semaphore.h takes different arguments from POSIX, and with
+# no fork() there are no processes for the module to coordinate.
+py_cv_module__multiprocessing=n/a
+# bsdsocket.library's calls are inline functions in <proto/socket.h>, which
+# <netdb.h> includes and <sys/socket.h> does not. configure's checks include
+# only the latter (or link, and there is no symbol to link), so they failed,
+# and socketmodule.c then used its WASI stubs: every socket() failed with
+# ENOTSUP. These are the calls <proto/socket.h> defines.
+ac_cv_func_socket=yes
+ac_cv_func_bind=yes
+ac_cv_func_connect=yes
+ac_cv_func_accept=yes
+ac_cv_func_listen=yes
+ac_cv_func_getpeername=yes
+ac_cv_func_getsockname=yes
+ac_cv_func_setsockopt=yes
+ac_cv_func_recvfrom=yes
+ac_cv_func_sendto=yes
+ac_cv_func_shutdown=yes
+ac_cv_func_gethostname=yes
+# No gettext in _locale. The SDK's libintl.a is GNU gettext and pulls in its
+# libiconv.a, GNU libiconv: both LGPL, and both would be linked statically
+# into the interpreter only for locale.gettext() and friends. The gettext
+# module is pure Python and does not use them.
+ac_cv_header_libintl_h=no
+ac_cv_lib_intl_textdomain=no

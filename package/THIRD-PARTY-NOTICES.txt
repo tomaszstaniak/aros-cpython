@@ -1,0 +1,53 @@
+Third-party components in this release (ABIv11)
+===============================================
+
+Python 3.14.7 itself is under the PSF License Agreement (see LICENSE).
+
+Statically compiled INTO the interpreter binary (Python/python)
+---------------------------------------------------------------
+These are linked in; the guest does not need them installed separately. Full
+license texts are in the licenses/ folder (one file per component).
+
+  OpenSSL 4.0.1          Apache-2.0      _ssl, _hashlib
+  jitterentropy 3.7.0    BSD-3-Clause    seeds OpenSSL's random generator
+                         (or GPL-2.0)    (ABIv11 has no OS entropy source)
+  xz / liblzma 5.8.3     0BSD            lzma
+  SQLite 3.48.0          public domain   sqlite3 (the SDK's libsqlite3.a)
+  Expat 2.8.2            MIT             pyexpat, xml.parsers (CPython's copy)
+  mpdecimal              BSD-2-Clause    _decimal (CPython's copy)
+  HACL*                  MIT             hashlib primitives (CPython Modules/_hacl)
+
+  (Checked against this binary: it contains SSL_CTX_new, jent_entropy_init,
+   lzma_lzma_encoder_init, sqlite3_open and mpd_qadd as its own code, and no
+   reference to the system xz library.)
+
+Provided by the AROS SYSTEM at runtime (NOT in this archive)
+------------------------------------------------------------
+The interpreter opens these AROS shared libraries through the SDK's link
+stubs; their code is not shipped here and their licensing is AROS's:
+
+  zlib       -> z1.library         (zlib, gzip, zipfile deflate)
+  bzip2      -> bz2.library        (bz2)
+  sockets    -> bsdsocket.library  (AROSTCP)
+  C runtime  -> crt.library and the other system libraries
+
+If z1.library or bz2.library is missing, `import zlib` or `import bz2` fails.
+
+Bundled Python packages
+-----------------------
+  pip 26.2.1        MIT   lib/python3.14/site-packages/pip-26.2.1.dist-info/
+                          licenses/ (travels with the package). Changed in
+                          two vendored files so that it loads without the
+                          mmap module; the change is in
+                          pip-26.2.1-without-mmap.diff next to this file.
+  pyfiglet 1.0.4    MIT   inside wheels/pyfiglet-1.0.4-py3-none-any.whl
+                          (demonstration wheel for the offline pip test)
+
+The rest of the standard library keeps its upstream CPython licensing (PSF).
+
+Data files
+----------
+  CA bundle   MPL-2.0   Python/ssl/ca-bundle.crt - Mozilla root certificates
+                        via curl's mk-ca-bundle; see
+                        licenses/LICENSE.ca-bundle.txt. The launcher points
+                        SSL_CERT_FILE at it.

@@ -1,0 +1,13 @@
+.key args/F
+.bra {
+.ket }
+; Python needs a deep stack; the default 256 KB dies inside the parser.
+Stack 16000000
+; OpenSSL's compiled-in default CA path is a build path that does not exist on
+; the target. Point it at the CA bundle shipped in this package.
+SetEnv SSL_CERT_FILE /Python/ssl/ca-bundle.crt
+; No -u here. On ABIv11 the console is a tty to
+; posixc, so stdout is line buffered anyway, and -u made posixc leave the
+; Shell's own output handle unbuffered after exit: the prompt's colour codes
+; were then written in pieces and shown as text.
+Python:python {args}
