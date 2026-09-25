@@ -100,13 +100,17 @@ lookups in python followed by an HTTPS request, the same again in a second,
 new interpreter, and the C lookup again.
 PASS  boots 1, 3, 4, 5: DHCP client running; every lookup answered (C and
       both interpreters); HTTPS 200.
-FAIL  boot 2: AROSTCP loaded but its DHCP client not running; the C program
-      stopped with "Unable to open bsdsocket.library version 4 or later",
-      so the network stack itself was not available to any program.
+FAIL  boot 2: at the check 150 s after the boot, AROSTCP was loaded but its
+      DHCP client not running, and the C program stopped with "Unable to
+      open bsdsocket.library version 4 or later": the network stack was not
+      available to any program. Whether it would have started later was not
+      established (the requester stopped the rest of that boot's checks).
 Together with the earlier boots: in 2 of 10 boots with a correct network
-configuration the network failed for the whole boot (F3: name lookup failed
-for every host; boot 2 here: no network stack). In the 8 other boots name
-lookup and HTTPS worked. See L12.
+configuration network access failed (F3: name lookup failed for every host
+for the whole boot, with no check independent of Python; boot 2 here: no
+network stack at the check). The two were measured differently and are not
+known to share a cause. In the 8 other boots name lookup and HTTPS worked.
+See L12.
 
 D. THE README EXAMPLES
 ----------------------
@@ -150,9 +154,10 @@ L9  Entropy comes from CPU timing jitter (jitterentropy), as ABIv11 has no
 L10 time_t is 32 bits in this C library.
 L11 Startup needs AROSTCP running (bsdsocket.library is opened at start).
 L12 The network is not always ready after a boot: in 2 of 10 test boots
-    with a correct configuration it failed for the whole boot, once as name
-    lookup failing for every host, once as no network stack at all (see B
-    and C). A restart cleared it both times.
+    with a correct configuration network access failed, once as name lookup
+    failing for every host for the whole boot, once as no network stack at
+    the check 150 s after the boot (see B and C). A restart cleared it both
+    times.
 L13 os.stat().st_flags holds no meaningful value: the C library leaves it
     unset (measured 0x4bcaa880 on a RAM: directory). shutil.move() of a
     directory between volumes reads it as the BSD "immutable" flag and

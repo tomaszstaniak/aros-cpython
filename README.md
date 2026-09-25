@@ -6,18 +6,21 @@ You run `python` and write ordinary Python code. This repository holds
 everything needed to rebuild it: the patches, build scripts, package files,
 tests and the reproducers for the platform problems found on the way.
 
-**0.1.0 preview** is the first published version, for testers and for
-running scripts. Three limits matter most:
+**0.1.0 preview** is the first version, for testers and for running
+scripts. **The binary release is still being prepared**; until it is
+published, build from source (see below). Three limits matter most:
 
 - **L1: a running script cannot be interrupted.** Ctrl-C and `Break` do not
   stop it. A script that does not end by itself needs a reboot.
 - **L2: sockets work only in the main thread.** In any other thread, name
   lookup and `socket()` fail.
 - **L12: the network is not always ready after a boot.** In 2 of 10 test boots with a correct network
-  configuration, the network failed for the whole boot: once name lookup
-  failed for every host, once the network stack did not start at all (a C
-  program could not open `bsdsocket.library` either). A restart cleared it
-  both times.
+  configuration, network access failed. Once, name lookup failed for every
+  host for the whole boot. Once, checked 150 s after the boot, the network
+  stack was not available (a C program could not open `bsdsocket.library`
+  either); whether it would have started later was not established. A
+  restart cleared it both times. The two cases were measured differently
+  and are not known to share a cause.
 
 Work on the port continues; see [Further work](#further-work).
 

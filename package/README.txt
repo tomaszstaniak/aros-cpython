@@ -173,10 +173,12 @@ ACCEPTANCE.txt.
     system entropy source.
   - time_t is 32 bits in this C library: times after 2038-01-19 03:14:07
     UTC cannot be represented.
-  - L12: in 2 of 10 test boots with a correct network configuration, the
-    network failed for the whole boot: once name lookup failed for every
-    host, once the network stack did not start at all (a C program could
-    not open bsdsocket.library either). A restart cleared it both times.
+  - L12: in 2 of 10 test boots with a correct network configuration,
+    network access failed. Once, name lookup failed for every host for the
+    whole boot. Once, checked 150 s after the boot, the network stack was
+    not available (a C program could not open bsdsocket.library either);
+    whether it would have started later was not established. A restart
+    cleared it both times.
     Check with a simple lookup before longer work, for example
       python -c "import socket; print(socket.gethostbyname('example.com'))"
   - L13: os.stat().st_flags holds no meaningful value (the C library leaves
