@@ -1,7 +1,7 @@
 # Interpreter provenance - CPython 3.14.7 for AROS x86_64 ABIv11, release 0.1.0.
 # key=value lines are read by scripts/build-package.sh, which refuses to
 # package a binary whose SHA-256 differs from interpreter_sha256.
-interpreter_sha256=6cdd0f6072c58dd5b63c5f977400ba60bfb820b03afc9e4daa2728b9cb1ebe48
+interpreter_sha256=a072b8ad8c79dfa4106fbbfee7016e037e17d096e1bd27868ebb5124731e1203
 python_version=3.14.7
 build_stamp=main, Sep 25 2026, 00:00:00
 build=built from this repository with scripts/fetch-sources.sh, prepare-source.sh, build-deps.sh, configure.sh, build.sh, then x86_64-aros-strip --strip-debug (scripts/build-package.sh); SOURCE_DATE_EPOCH=1790294400 fixes the build time, so a rebuild with the same compiler gives the same file
