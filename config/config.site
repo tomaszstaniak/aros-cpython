@@ -52,3 +52,11 @@ ac_cv_func_gethostname=yes
 # module is pure Python and does not use them.
 ac_cv_header_libintl_h=no
 ac_cv_lib_intl_textdomain=no
+# struct stat has an st_flags member, but the ABIv11 stat() leaves it unset:
+# it holds whatever was in memory (0x4bcaa880 measured on a RAM: directory).
+# CPython would report that as os.stat().st_flags, and the standard library
+# acts on it: shutil.move() refuses to move a directory whose st_flags equals
+# UF_IMMUTABLE or SF_IMMUTABLE (which broke pip install --target across
+# volumes), and site.py skips .pth files marked UF_HIDDEN. Without the member,
+# os.stat() has no st_flags and that code is skipped.
+ac_cv_member_struct_stat_st_flags=no
