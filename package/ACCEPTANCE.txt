@@ -1,8 +1,8 @@
-CPython 3.14.7 for AROS x86_64 ABIv11 0.1.0 - what was tested
-===============================================================
+CPython 3.14.7 for AROS x86_64 ABIv11 0.1.0 preview - what was tested
+======================================================================
 
 Interpreter: Python/python, SHA-256
-  6cdd0f6072c58dd5b63c5f977400ba60bfb820b03afc9e4daa2728b9cb1ebe48
+  a072b8ad8c79dfa4106fbbfee7016e037e17d096e1bd27868ebb5124731e1203
   3.14.7 (main, Sep 25 2026, 00:00:00) [GCC 10.5.0]
 
 System: the ABIv11 2026.09 release (deadwood2/AROS tag ABIv11_2026.09),
@@ -13,91 +13,94 @@ AROSTCP with DHCP on the e1000 card. Only this system was tested.
 PASS = measured and correct. FAIL = measured and wrong or missing.
 SKIP = not tested. The test scripts are in the source repository
 (tests/guest); install-test and wheel-test are also in this archive.
+Sections A to C were measured with this interpreter. D and E were measured
+with the previous candidate (6cdd0f60...), which differs from this one only
+in the stat code of the posix module (the L13 fix; see C).
 
 
 A. INSTALL FROM THIS ARCHIVE, AS README.txt DESCRIBES
 -----------------------------------------------------
 On a fresh copy of the ABIv11 2026.09 test disk (disk image SHA-256
 2e701911e775d7272a4f0ef96716c38f35e7249a69f14e00965e4760b933ca89), from this
-release's package (the same files; this ACCEPTANCE was written afterwards):
+release's package (the same files; README and ACCEPTANCE were edited
+afterwards):
 PASS  README steps 1-8. No error or warning in RAM:unzip-log.
 PASS  network set up in SYS:Prefs/Network as README describes; reboot.
-PASS  python -c "import sys; print(sys.version)" prints
-      3.14.7 (main, Sep 25 2026, 00:00:00) [GCC 10.5.0]
-NOTE  started too soon after a restart, before AROSTCP was up, python stops
-      with the requester "Unable to open bsdsocket.library version 4 or
-      later", as README says.
-Then the full test run twice: F3 in the first boot after the install, F4
-after a restart.
+PASS  in both boots after that (F5, F6), Status listed AROSTCP and its
+      DHCP client.
+Then the full test run twice: F5, and F6 after a restart.
 
 
-B. TEST RUNS F3 AND F4
-----------------------
+B. TEST RUNS F5 AND F6 (both runs gave the same results)
+-------------------------------------------------------
 PASS  start and identifiers (idprobe.py): sys.platform "aros", sysconfig
       platform aros_abiv11-x86_64, SOABI cpython-314-x86_64-aros-abiv11,
       pip platform tags "aros_abiv11_x86_64" and "any"; the running
-      binary's SHA-256 matches the one above. Both runs.
-PASS  imports (imports11.py): 182 of 205 standard library modules import.
-      The 23 that do not are the missing modules in L4 and the Windows-only
-      ones (msvcrt, nt, winreg, winsound). Both runs.
-PASS  files and JSON, os.stat, pwd, os.urandom and secrets (probe11.py).
-      Both runs.
+      binary's SHA-256 matches the one above.
+PASS  imports (imports11.py): 182 of the 205 standard library modules
+      checked import. The 23 that do not are the missing modules in L4 and
+      the Windows-only ones (msvcrt, nt, winreg, winsound). Importing a
+      module does not show that all of it works.
+PASS  files and JSON, os.stat, pwd, os.urandom and secrets (probe11.py)
 PASS  compression (compress11.py): zlib, gzip, bz2, lzma (xz and alone
-      formats), zipfile, tar.gz, tar.bz2, tar.xz round trips. Both runs.
-PASS  HTTPS with certificate verification (https11.py), F4: pypi.org and
+      formats), zipfile, tar.gz, tar.bz2, tar.xz round trips
+PASS  HTTPS with certificate verification (https11.py): pypi.org and
       www.python.org answer 200; expired.badssl.com, wrong.host.badssl.com
-      and self-signed.badssl.com are refused with SSLCertVerificationError.
-FAIL  the same in F3: during that whole boot, name lookup failed for every
-      host (gaierror 2, "getaddrinfo failed"), so every HTTPS check failed,
-      and install-test gave 3/6. After the restart (F4) all passed. In the
-      other test boots of the same code (three) name lookup worked. Cause
-      not established: the system's DHCP or DNS in that boot, or the
-      interpreter's name lookup. See L12.
+      and self-signed.badssl.com are refused with SSLCertVerificationError
 PASS  threads (threads11.py): 8 threads with a lock, a queue between two
-      threads (1000 items), a ThreadPoolExecutor, threading.Timer. Both
-      runs.
+      threads (1000 items), a ThreadPoolExecutor, threading.Timer
 PASS  two interpreters at once (conc11.py): one started with Run, one in
-      the Shell, running for the same 11 s, each writing and reading its own
-      JSON file 40 times with the expected contents. Both runs.
+      the Shell, running for the same 10-11 s, each writing and reading its
+      own JSON file 40 times with the expected contents
 PASS  repeated runs in one Shell: eight python runs in a row after the
-      tests, each writing its own result file; all correct. Both runs.
-PASS  wheel-test.py: SUMMARY 6 checks passed, 0 failed (pyfiglet installed
-      with pip into a fresh directory, imported, run, removed). Both runs.
-PASS  install-test.py in F4: SUMMARY 4/6, the result README states; the two
-      failing checks are L2.
+      tests, each writing its own result file; all correct
+PASS  wheel-test.py: SUMMARY 6 checks passed, 0 failed
+PASS  install-test.py: SUMMARY 4/6, the result README states; the two
+      failing checks are L2
 PASS  unsupported features fail readably (limits.py): subprocess and
       os.popen raise OSError "aros does not support processes"; pip on a
       source distribution stops with the same error; os.system returns 0;
       ensurepip reports pip 26.2.1; venv creates an environment; pydoc and
       compileall work; ctypes.util.find_library fails (no _ctypes);
       multiprocessing raises NotImplementedError "cannot determine number
-      of cpus"; webbrowser finds no browser. Both runs.
-PASS  the Shell after these runs: the prompt keeps its colours, and `Dir`
-      on a missing volume still brings up the "Please insert volume"
-      requester. Both runs.
+      of cpus"; webbrowser finds no browser
+PASS  the Shell after the runs: the prompt keeps its colours, and `Dir` on a
+      missing volume still brings up the "Please insert volume" requester
 FAIL  a socket in a worker thread (probe11.py, install-test.py): name
       lookup raises gaierror "getaddrinfo failed", socket() raises OSError
-      errno 0. L2. Both runs.
-FAIL  Ctrl-C and Break (endmode.py wait), after F4: a script sleeping in a
+      errno 0. L2
+FAIL  Ctrl-C and Break (endmode.py wait), after F6: a script sleeping in a
       loop is not stopped by Ctrl-C in its Shell, nor by `Break 1 C` from
-      another Shell; Status still lists Python:python afterwards. L1.
+      another Shell; Status still lists Python:python afterwards. L1
 SKIP  real hardware, other ABIv11 systems.
 
-Earlier runs: the same code, built in a development tree (function by
-function equal to this binary except the version stamp; see the source
-repository's docs/testing.md), passed the same test runs in three boots,
-two of them after an install from the package as in A, with HTTPS passing
-in all three.
+
+C. L13: MOVING DIRECTORIES BETWEEN VOLUMES (l13move.py)
+-------------------------------------------------------
+The previous candidate reported os.stat().st_flags, which the ABIv11 C
+library leaves unset, and shutil.move() refused to move a directory whose
+value happened to equal an immutable flag: in the README example run,
+pip install --target into SYS: failed with PermissionError "Cannot move
+the non-empty directory"; in other runs the same install succeeded. This interpreter does not report st_flags.
+Same installation, same boot, previous candidate then this interpreter:
+                               previous    this
+  st_flags on plain dirs         FAIL        PASS (not reported)
+    (4 different leftover values in 1000 calls)
+  move a directory RAM: -> SYS:  PASS        PASS
+  pip --target on SYS:, import   PASS        PASS
+The two operations passed with the previous candidate in that run because
+the failure depended on the leftover value. After a restart, this
+interpreter again passed all three.
 
 
-C. NETWORK AFTER A BOOT (L12), FIVE MORE BOOTS
-----------------------------------------------
-The installation from A, booted five more times (one cold start, four
-restarts). In each boot, after 150 s: Status (is AROSTCP and its DHCP client
-running), a name lookup of pypi.org, www.python.org and example.com by a
-small C program through bsdsocket.library (independent of Python), the same
-lookups in python followed by an HTTPS request, the same again in a second,
-new interpreter, and the C lookup again.
+D. NETWORK AFTER A BOOT (L12), PREVIOUS CANDIDATE, FIVE BOOTS
+-------------------------------------------------------------
+The previous candidate's installation, booted five times (one cold start,
+four restarts). In each boot, after 150 s: Status (AROSTCP and its DHCP
+client), a lookup of pypi.org, www.python.org and example.com by a small C
+program through bsdsocket.library (independent of Python), the same in
+python with an HTTPS request, again in a second new interpreter, and the C
+lookup again.
 PASS  boots 1, 3, 4, 5: DHCP client running; every lookup answered (C and
       both interpreters); HTTPS 200.
 FAIL  boot 2: at the check 150 s after the boot, AROSTCP was loaded but its
@@ -105,24 +108,21 @@ FAIL  boot 2: at the check 150 s after the boot, AROSTCP was loaded but its
       open bsdsocket.library version 4 or later": the network stack was not
       available to any program. Whether it would have started later was not
       established (the requester stopped the rest of that boot's checks).
-Together with the earlier boots: in 2 of 10 boots with a correct network
-configuration network access failed (F3: name lookup failed for every host
-for the whole boot, with no check independent of Python; boot 2 here: no
-network stack at the check). The two were measured differently and are not
-known to share a cause. In the 8 other boots name lookup and HTTPS worked.
-See L12.
+Earlier, in test run F3 of that candidate, name lookup failed for every
+host for the whole boot, with no check independent of Python. Over all 12
+test boots (the previous candidate's and this interpreter's), network
+access failed in these 2. See L12.
 
-D. THE README EXAMPLES
-----------------------
-PASS  as written in the source repository's README: a script from RAM:,
-      json, zipfile (archive created), HTTPS to www.python.org (200), a
-      thread printing, pip installing a wheel into /RAM/pkgs and AmigaDOS
-      Copy into site-packages, then importing it from there.
+
+E. THE README EXAMPLES, PREVIOUS CANDIDATE
+------------------------------------------
+PASS  a script from RAM:, json, zipfile (archive created), HTTPS to
+      www.python.org (200), a thread printing.
 PASS  the "does not work yet" examples fail as described: subprocess.run
       raises OSError "aros does not support processes", import ctypes raises
       ModuleNotFoundError.
-FAIL  pip install --target /Python/lib/python3.14/site-packages: stops with
-      PermissionError "Cannot move the non-empty directory"; see L13.
+The pip example installs into SYS:, which is what C covers with this
+interpreter.
 
 
 KNOWN LIMITS
@@ -153,14 +153,8 @@ L9  Entropy comes from CPU timing jitter (jitterentropy), as ABIv11 has no
     operating system entropy source.
 L10 time_t is 32 bits in this C library.
 L11 Startup needs AROSTCP running (bsdsocket.library is opened at start).
-L12 The network is not always ready after a boot: in 2 of 10 test boots
+L12 The network is not always ready after a boot: in 2 of 12 test boots
     with a correct configuration network access failed, once as name lookup
     failing for every host for the whole boot, once as no network stack at
-    the check 150 s after the boot (see B and C). A restart cleared it both
-    times.
-L13 os.stat().st_flags holds no meaningful value: the C library leaves it
-    unset (measured 0x4bcaa880 on a RAM: directory). shutil.move() of a
-    directory between volumes reads it as the BSD "immutable" flag and
-    fails with PermissionError, so pip --target works only on the volume of
-    pip's temporary directory (RAM:). The next version will not report
-    st_flags.
+    the check 150 s after the boot (see D). A restart cleared it both times.
+    The two were measured differently and are not known to share a cause.

@@ -56,13 +56,24 @@ Not in the suite, run by hand:
 ## Rebuild checks
 
 - Two builds from fresh clones in different directories gave the same
-  interpreter (`6cdd0f60...`) and byte-identical archives.
-- The release binary was compared with the build used in the earlier test
-  runs (made from the same patches in a development tree, with different
-  build paths and time stamp) using `scripts/compare-binaries.py`, which
-  compares every function and data object by name and masks the bytes that
-  relocations fill in: 28269 of 28270 symbols are equal; the one that
-  differs is `Py_GetBuildInfo`, which returns the version stamp. As
-  controls, two development builds with the same code gave 28270 of 28270,
-  and a build from before the socket, tm_zone and thread ident patches gave
-  745 differences.
+  interpreter (`a072b8ad...`) and byte-identical archives.
+- `scripts/compare-binaries.py` compares two executables function by
+  function and data object by data object, masking the bytes that
+  relocations fill in. Against the previous candidate (`6cdd0f60...`,
+  before the L13 fix) it reports differences only in the `posix` module's
+  stat code (33 symbols, all in `Modules/posixmodule.c`), the expected
+  effect of dropping `st_flags`. That candidate in turn equalled the
+  development build used in the earliest test runs in 28269 of 28270
+  symbols, all but the version stamp. As controls, two development builds
+  with the same code gave 28270 of 28270, and a build from before the
+  socket, tm_zone and thread ident patches gave 745 differences.
+
+## L13 before and after
+
+`tests/guest/l13move.py` checks the cause directly (on plain directories
+`st_flags` must be absent or 0, in 1000 `stat()` calls) and then moves a
+directory from RAM: to SYS: and installs a wheel with pip into a target on
+SYS: and imports it from there. With the previous candidate the first check
+failed (4 different leftover values); the other two passed in that run, as
+the failure depended on the leftover value. With this release all three
+pass.

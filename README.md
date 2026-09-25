@@ -7,20 +7,20 @@ everything needed to rebuild it: the patches, build scripts, package files,
 tests and the reproducers for the platform problems found on the way.
 
 **0.1.0 preview** is the first version, for testers and for running
-scripts. **The binary release is still being prepared**; until it is
-published, build from source (see below). Three limits matter most:
+scripts. Binaries: [releases](https://github.com/tomaszstaniak/aros-cpython/releases).
+Three limits matter most:
 
 - **L1: a running script cannot be interrupted.** Ctrl-C and `Break` do not
   stop it. A script that does not end by itself needs a reboot.
 - **L2: sockets work only in the main thread.** In any other thread, name
   lookup and `socket()` fail.
-- **L12: the network is not always ready after a boot.** In 2 of 10 test boots with a correct network
-  configuration, network access failed. Once, name lookup failed for every
-  host for the whole boot. Once, checked 150 s after the boot, the network
-  stack was not available (a C program could not open `bsdsocket.library`
-  either); whether it would have started later was not established. A
-  restart cleared it both times. The two cases were measured differently
-  and are not known to share a cause.
+- **L12: the network is not always ready after a boot.** In 2 of 12 test
+  boots with a correct network configuration, network access failed. Once,
+  name lookup failed for every host for the whole boot. Once, checked 150 s
+  after the boot, the network stack was not available (a C program could
+  not open `bsdsocket.library` either); whether it would have started later
+  was not established. A restart cleared it both times. The two cases were
+  measured differently and are not known to share a cause.
 
 Work on the port continues; see [Further work](#further-work).
 
@@ -36,7 +36,7 @@ Measured on the ABIv11 2026.09 release in QEMU; details in
 | zlib, gzip, bz2, lzma, zipfile, tarfile | Starting processes: `subprocess`, `os.popen`, `multiprocessing` (this port has no way to create processes) |
 | HTTPS with certificate and host name verification | `ctypes`, `mmap`, `curses`, `readline`, `dbm`, `tkinter`, `termios`, `tty`, `pty` |
 | Threads, locks, queues, thread pools, timers | pip installing source distributions |
-| pip installing pure-Python wheels (into a directory on `RAM:`; see L13) | Loading additional native C/C++ extension modules (the built-in ones, such as `ssl` and the compression modules, work) |
+| pip installing pure-Python wheels | Loading additional native C/C++ extension modules (the built-in ones, such as `ssl` and the compression modules, work) |
 | Several interpreters at the same time | `locale.gettext()` and the other C-level gettext functions |
 | Many runs in one Shell | |
 | `os.system` | |
@@ -56,8 +56,7 @@ python -c "import json; print(json.dumps({'a': [1, 2]}))"
 python -c "import zipfile; z = zipfile.ZipFile('/RAM/a.zip', 'w'); z.writestr('x.txt', 'hi'); z.close()"
 python -c "import urllib.request as u; print(u.urlopen('https://www.python.org').status)"
 python -c "import threading; t = threading.Thread(target=print, args=('hi',)); t.start(); t.join()"
-python -m pip install --no-index --no-build-isolation --target /RAM/pkgs /RAM/some_package-1.0-py3-none-any.whl
-Copy RAM:pkgs SYS:Python/lib/python3.14/site-packages ALL CLONE
+python -m pip install --no-index --no-build-isolation --target /Python/lib/python3.14/site-packages /RAM/some_package-1.0-py3-none-any.whl
 ```
 
 What does not work yet:
@@ -70,9 +69,6 @@ python -c "import subprocess; subprocess.run(['Echo', 'hi'])"
 python -c "import ctypes"           # ModuleNotFoundError: No module named '_ctypes'
 python -m pip install /RAM/some-package-1.0.tar.gz
                                     # source distributions need subprocess
-python -m pip install --target /Python/lib/python3.14/site-packages some.whl
-                                    # PermissionError: a directory cannot be
-                                    # moved between volumes (L13)
 ```
 
 ## Requirements on AROS

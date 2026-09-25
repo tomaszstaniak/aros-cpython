@@ -24,7 +24,7 @@ Each was measured on that system; the reproducers are in `tests/c` and
 | `sysconf(_SC_CLK_TCK)` fails | `fdprobe.c` | `os.times()` failed | patch 0015 |
 | no `fork()` or `execve()` | none | no subprocess | patch 0019 (import works, `Popen` raises OSError) |
 | sendmsg exists but `SC_IOV_MAX` is not a sysconf name | none | `import asyncio` raised ValueError | patch 0022 |
-| `stat()` leaves `st_flags` unset (garbage, for example `0x4bcaa880`) | `python -c "import os; print(hex(os.stat('/RAM').st_flags))"` | `shutil.move()` of a directory between volumes fails with PermissionError, and with it `pip install --target` outside RAM: | open, L13 (next version: do not report `st_flags`) |
+| `stat()` leaves `st_flags` unset (garbage, for example `0x4bcaa880`) | `python -c "import os; print(hex(os.stat('/RAM').st_flags))"` | `shutil.move()` of a directory between volumes could fail with PermissionError whenever the leftover value equalled an immutable flag, and with it `pip install --target` outside RAM: (intermittent) | `config/config.site` (L13, fixed in 0.1.0: `st_flags` not reported) |
 
 Checked and found correct, so ruled out as causes: POSIX semaphores
 (`semprobe.c`, `-lpthread`) and `_Thread_local` variables (`tlsprobe.c`,

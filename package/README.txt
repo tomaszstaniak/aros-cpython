@@ -125,9 +125,7 @@ USING IT
   python /Python/demo/https_verify.py
   python /Python/demo/json_files.py
   python -m pip install --no-index --no-build-isolation \
-      --target /RAM/pkgs <wheel file>
-  Copy RAM:pkgs SYS:Python/lib/python3.14/site-packages ALL CLONE
-      (pip cannot install straight into SYS:Python, see KNOWN LIMITS)
+      --target /Python/lib/python3.14/site-packages <wheel file>
   python -c "import json; print(json.dumps({'a': [1, 2]}))"
   python -c "import urllib.request as u; print(u.urlopen('https://www.python.org').status)"
 
@@ -173,7 +171,7 @@ ACCEPTANCE.txt.
     system entropy source.
   - time_t is 32 bits in this C library: times after 2038-01-19 03:14:07
     UTC cannot be represented.
-  - L12: in 2 of 10 test boots with a correct network configuration,
+  - L12: in 2 of 12 test boots with a correct network configuration,
     network access failed. Once, name lookup failed for every host for the
     whole boot. Once, checked 150 s after the boot, the network stack was
     not available (a C program could not open bsdsocket.library either);
@@ -181,11 +179,6 @@ ACCEPTANCE.txt.
     cleared it both times.
     Check with a simple lookup before longer work, for example
       python -c "import socket; print(socket.gethostbyname('example.com'))"
-  - L13: os.stat().st_flags holds no meaningful value (the C library leaves
-    it unset), and shutil.move() of a directory from one volume to another
-    can then fail with PermissionError. This is why pip --target must point
-    to a directory on RAM: (where pip keeps its temporary files); copy the
-    result with the AmigaDOS Copy command.
   - Tested environment: QEMU (software emulation, x86_64), 2 GB, on one
     installation of the ABIv11 2026.09 release. Not tested on real hardware.
 

@@ -67,7 +67,7 @@ interpreter and the same archives:
 
 | File | SHA-256 |
 |---|---|
-| `Python/python` (debug information removed) | `6cdd0f6072c58dd5b63c5f977400ba60bfb820b03afc9e4daa2728b9cb1ebe48` |
+| `Python/python` (debug information removed) | `a072b8ad8c79dfa4106fbbfee7016e037e17d096e1bd27868ebb5124731e1203` |
 | `aros-cpython-3.14.7-abiv11-0.1.0.tar.gz` | see the release page |
 
 A different compiler build or SDK gives a different file. The code can
