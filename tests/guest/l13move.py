@@ -1,8 +1,11 @@
-# l13move.py - L13: moving a directory between volumes, and pip installing a
-# wheel into a target on another volume than its temporary directory, then
-# importing the installed package from there. Before the fix, os.stat() had
-# an st_flags with an unset value, and shutil.move() could refuse the move
-# with PermissionError "Cannot move the non-empty directory".
+# l13move.py - L13. Before the fix, os.stat() reported an st_flags that the
+# ABIv11 C library leaves unset: a different leftover value on every call.
+# shutil.move() refuses to move a directory whose st_flags equals
+# UF_IMMUTABLE or SF_IMMUTABLE, so moving a directory between volumes (and
+# with it pip install --target on another volume than pip's temporary
+# directory) failed only when the leftover happened to match. The first
+# check tests that cause directly and so fails every time on an affected
+# build; the other two are the operations themselves.
 import os, sys, shutil, tempfile, importlib
 WHEEL = "/Python/wheels/pyfiglet-1.0.4-py3-none-any.whl"
 tag = "%d" % os.getpid()
@@ -15,6 +18,20 @@ def check(name, fn):
 
 print("M st_flags  %s" % (hex(os.stat("/RAM").st_flags) if hasattr(os.stat("/RAM"), "st_flags") else "not reported"), flush=True)
 print("M tempdir   %s" % tempfile.gettempdir(), flush=True)
+
+def flags():
+    paths = ["/RAM", "/Python", "/Python/lib", "/tmp", "/Python/lib/python3.14"]
+    if not hasattr(os.stat("/RAM"), "st_flags"):
+        return "st_flags not reported"
+    seen, hits, calls = set(), 0, 0
+    for _ in range(200):
+        for p in paths:
+            seen.add(os.stat(p).st_flags)
+            hits += shutil._is_immutable(p)
+            calls += 1
+    assert seen == {0}, "%d distinct st_flags values on plain directories, %d of %d calls looked immutable" % (len(seen), hits, calls)
+    return "all 0"
+check("flags", flags)
 
 def move_dir():
     src = "/RAM/l13-src-" + tag
