@@ -44,6 +44,14 @@ Measured on the ABIv11 2026.09 release in QEMU; details in
 Self-tests shipped in the package: `wheel-test.py` passes 6 of 6;
 `install-test.py` passes 4 of 6, and the two failing checks are L2.
 
+CPython's own test suite (`Lib/test`) does not pass as a whole. One pass
+with this interpreter: of 492 test modules, 218 pass, 135 fail in some test
+cases, 30 do not run (half of them because `test.support` needs the
+`resource` module, which is not built), 84 are skipped as a whole, 24 did
+not finish within 1500 s, 1 changed the environment. Details, causes and
+the difference between failing functions and blocked tests:
+[docs/libtest-0.1.0.md](docs/libtest-0.1.0.md). This is a preview.
+
 ## Examples
 
 What works, in an AROS Shell (paths are Unix-style: `/RAM/x` is `RAM:x`,
