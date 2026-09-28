@@ -1,0 +1,113 @@
+From 918cbed4768108e6d08310e5d953751719ea9d05 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:15:28 +0200
+Subject: [PATCH 08/22] aros: socket module without inet_pton(), inet_ntop()
+ and getaddrinfo()
+
+ABIv11 bsdsocket.library has neither getaddrinfo() nor inet_pton() and
+inet_ntop(), so CPython's own getaddrinfo.c and getnameinfo.c are used,
+and they, like the address formatting, need the latter two. Add IPv4
+versions (this build has no IPv6): inet_pton() is the ISC/BIND
+inet_pton4(), strict dotted quad without leading zeros, matching the
+host C library otherwise; other families give EAFNOSUPPORT. Include
+sys/uio.h for struct iovec, which sys/socket.h does not pull in here.
+---
+ Modules/socketmodule.c | 78 ++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 76 insertions(+), 2 deletions(-)
+
+diff --git a/Modules/socketmodule.c b/Modules/socketmodule.c
+index f297a5f..d3cbfd1 100644
+--- a/Modules/socketmodule.c
++++ b/Modules/socketmodule.c
+@@ -177,8 +177,8 @@ shutdown(how) -- shut down traffic in one or both directions\n\
+ # undef HAVE_GETHOSTBYNAME_R_6_ARG
+ #endif
+ 
+-#if defined(__OpenBSD__)
+-# include <sys/uio.h>
++#if defined(__OpenBSD__) || defined(__AROS__)
++# include <sys/uio.h>  /* ABIv11: struct iovec, which sys/socket.h does not pull in */
+ #endif
+ 
+ #if defined(__ANDROID__) && __ANDROID_API__ < 23
+@@ -432,6 +432,80 @@ remove_unusable_flags(PyObject *m)
+ 
+ #endif
+ 
++#ifdef __AROS__
++/* ABIv11 AROS: bsdsocket.library has neither inet_pton() nor inet_ntop(),
++   which getaddrinfo.c, getnameinfo.c and the address formatting below use.
++   IPv4 only (this build has no IPv6): inet_pton4() is the ISC/BIND one,
++   strict dotted quad, no leading zeros. */
++static int
++aros_inet_pton(int af, const char *src, void *dst)
++{
++    unsigned char tmp[4], *tp = tmp;
++    int saw_digit = 0, octets = 0, ch;
++
++    if (af != AF_INET) {
++        errno = EAFNOSUPPORT;
++        return -1;
++    }
++    *tp = 0;
++    while ((ch = (unsigned char)*src++) != '\0') {
++        if (ch >= '0' && ch <= '9') {
++            unsigned int v = *tp * 10u + (unsigned int)(ch - '0');
++            if (saw_digit && *tp == 0) {
++                return 0;
++            }
++            if (v > 255) {
++                return 0;
++            }
++            *tp = (unsigned char)v;
++            if (!saw_digit) {
++                if (++octets > 4) {
++                    return 0;
++                }
++                saw_digit = 1;
++            }
++        }
++        else if (ch == '.' && saw_digit) {
++            if (octets == 4) {
++                return 0;
++            }
++            *++tp = 0;
++            saw_digit = 0;
++        }
++        else {
++            return 0;
++        }
++    }
++    if (octets < 4) {
++        return 0;
++    }
++    memcpy(dst, tmp, 4);
++    return 1;
++}
++
++static const char *
++aros_inet_ntop(int af, const void *src, char *dst, socklen_t size)
++{
++    const unsigned char *a = (const unsigned char *)src;
++    char tmp[sizeof "255.255.255.255"];
++    int n;
++
++    if (af != AF_INET) {
++        errno = EAFNOSUPPORT;
++        return NULL;
++    }
++    n = snprintf(tmp, sizeof(tmp), "%u.%u.%u.%u", a[0], a[1], a[2], a[3]);
++    if (n < 0 || (socklen_t)n >= size) {
++        errno = ENOSPC;
++        return NULL;
++    }
++    memcpy(dst, tmp, (size_t)n + 1);
++    return dst;
++}
++#define inet_pton aros_inet_pton
++#define inet_ntop aros_inet_ntop
++#endif
++
+ /* I know this is a bad practice, but it is the easiest... */
+ #if !defined(HAVE_GETADDRINFO)
+ /* avoid clashes with the C library definition of the symbol. */

@@ -1,0 +1,45 @@
+From b223cdf8d07e620238ada2f72c142b7f4a759d72 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:04:16 +0200
+Subject: [PATCH 04/22] aros: build without pause() and O_NOFOLLOW
+
+Neither exists on ABIv11 (configure finds no pause(); fcntl.h has no
+O_NOFOLLOW), and CPython uses both unconditionally. Sleep in a loop
+where pause() would be called, as for WASI, and add O_NOFOLLOW to the
+perf map file's flags only where it is defined.
+---
+ Python/sysmodule.c      | 5 ++++-
+ Python/thread_pthread.h | 4 ++--
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/Python/sysmodule.c b/Python/sysmodule.c
+index eeb9ef2..3bd9f82 100644
+--- a/Python/sysmodule.c
++++ b/Python/sysmodule.c
+@@ -2713,7 +2713,10 @@ PyAPI_FUNC(int) PyUnstable_PerfMapState_Init(void) {
+     char filename[100];
+     pid_t pid = getpid();
+     // Use nofollow flag to prevent symlink attacks.
+-    int flags = O_WRONLY | O_CREAT | O_APPEND | O_NOFOLLOW;
++    int flags = O_WRONLY | O_CREAT | O_APPEND;
++#ifdef O_NOFOLLOW
++    flags |= O_NOFOLLOW;  // not defined on ABIv11 AROS
++#endif
+ #ifdef O_CLOEXEC
+     flags |= O_CLOEXEC;
+ #endif
+diff --git a/Python/thread_pthread.h b/Python/thread_pthread.h
+index 8e7b958..5fa35e8 100644
+--- a/Python/thread_pthread.h
++++ b/Python/thread_pthread.h
+@@ -434,8 +434,8 @@ void _Py_NO_RETURN
+ PyThread_hang_thread(void)
+ {
+     while (1) {
+-#if defined(__wasi__)
+-        sleep(9999999);  // WASI doesn't have pause() ?!
++#if defined(__wasi__) || !defined(HAVE_PAUSE)
++        sleep(9999999);  // WASI and ABIv11 AROS don't have pause()
+ #else
+         pause();
+ #endif

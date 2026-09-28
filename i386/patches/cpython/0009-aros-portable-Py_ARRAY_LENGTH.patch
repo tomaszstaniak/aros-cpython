@@ -1,0 +1,31 @@
+From 46dcc2942362c574397843175ab5a51a4ccbbeab Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:20:10 +0200
+Subject: [PATCH 09/22] aros: portable Py_ARRAY_LENGTH
+
+ABIv11 builds with -std=gnu11 because its C headers declare getcwd(),
+readlink() and other POSIX functions only without __STRICT_ANSI__.
+Without __STRICT_ANSI__, Py_ARRAY_LENGTH takes its GNU form, which adds
+the C11 Py_BUILD_ASSERT_EXPR, a comma expression and so not a constant;
+faulthandler.c uses it in a static initializer. Keep the portable form
+on AROS.
+---
+ Include/pymacro.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/Include/pymacro.h b/Include/pymacro.h
+index 1af057a..ff48e5d 100644
+--- a/Include/pymacro.h
++++ b/Include/pymacro.h
+@@ -139,7 +139,10 @@
+    Written by Rusty Russell, public domain, http://ccodearchive.net/
+ 
+    Requires at GCC 3.1+ */
+-#if (defined(__GNUC__) && !defined(__STRICT_ANSI__) && \
++/* Not on AROS: it builds with -std=gnu11 (its C headers hide POSIX
++   declarations under __STRICT_ANSI__), and this form uses the C11
++   Py_BUILD_ASSERT_EXPR, which is not a constant in static initializers. */
++#if (defined(__GNUC__) && !defined(__STRICT_ANSI__) && !defined(__AROS__) && \
+     (((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)) || (__GNUC__ >= 4)))
+ /* Two gcc extensions.
+    &a[0] degrades to a pointer: a different type from an array */

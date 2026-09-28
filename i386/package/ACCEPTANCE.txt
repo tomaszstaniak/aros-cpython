@@ -1,0 +1,190 @@
+CPython 3.14.7 for AROS i386 ABIv0 0.1.0 preview - what was tested
+====================================================================
+
+Interpreter: Python/python, SHA-256
+  b9a3f0885df89579c8c194963dfb4825a376cc0f848c45bfd917b21461716070
+  3.14.7 (main, Sep 25 2026, 00:00:00) [GCC 6.5.0]
+  (before i386-aros-strip --strip-debug:
+  03327e9ebee3f82c337953f98b01d9efabc47db68764bcc1c26e2a8bf8598ce6)
+
+System: the ABIv0 20250313-1 release (deadwood2/AROS tag ABIv0_20250313-1),
+installed with InstallAROS from the release ISO with its defaults onto an
+8 GB QEMU disk (disk image SHA-256
+a505bc46072d7c45c600cf4529b609b2f985cdc2d2e46d624f094269d1e5942b); each
+test run used a fresh copy (qcow2 overlay). os.uname() reports release 12.1,
+version "41 Mar 22 2025"; ENV:ABI 0. QEMU 10.2.2 with KVM on an x86-64
+Fedora 44 host: pc machine, host CPU, 2 vCPUs, 2 GB, IDE disk, std VGA,
+e1000 with QEMU user networking (DHCP), PS/2 mouse. Only this system was
+tested; not on real hardware.
+
+PASS = measured and correct. FAIL = measured and wrong or missing.
+NOT CHECKED = not tested on i386 (results of the x86_64 build are not
+carried over). The test scripts are in the source repository (tests/guest,
+i386/tests); install-test and wheel-test are also in this archive.
+
+
+A. INSTALL FROM THIS ARCHIVE, AS README.txt DESCRIBES
+-----------------------------------------------------
+From a CD image holding this release's .lha (SHA-256 04eff768...; the
+README and ACCEPTANCE text were edited afterwards, the interpreter and
+library files are the same) and, as the unpacker README item 2 asks for,
+the lha of the release's contrib archive, copied to C:.
+PASS  README steps 2-7: unpacked with lha, copied to SYS:Python, launcher
+      in C:, the Assign appended to S:User-Startup, reboot.
+PASS  network set up in SYS:Prefs/Network as README describes (interface
+      with e1000.device, IP mode automatic, "Start networking during system
+      boot", Save), reboot.
+PASS  in all three boots after the install, Status listed AROSTCP and its
+      DHCP client.
+Then the test suite twice: A on boot 2, and B on boot 3 after a restart.
+(A pass typed into the Shell on boot 1 was lost: lines typed while tests
+ran were partly read by the running programs. The passes were then run
+from one AmigaDOS script each. A fault of the test harness, not of the
+package.)
+
+
+B. TEST RUNS A AND B (both runs gave the same results)
+------------------------------------------------------
+PASS  start and identifiers (idprobe.py): sys.platform "aros", sysconfig
+      platform aros_abiv0-i386, SOABI cpython-314-i386-aros-abiv0, pip
+      platform tags "aros_abiv0_i386" and "any"; the running binary's
+      SHA-256 matches the one above.
+PASS  imports (imports11.py): 180 of the 205 standard library modules
+      checked import. The 25 that do not are the missing modules in L4
+      (including sqlite3 and _sqlite3: this build has no SQLite) and the
+      Windows-only ones (msvcrt, nt, winreg, winsound). Importing a module
+      does not show that all of it works.
+PASS  files and JSON, os.stat, pwd, os.urandom and secrets, pip --version
+      (probe11.py)
+PASS  compression (compress11.py): zlib, gzip, bz2, lzma (xz and alone
+      formats), zipfile, tar.gz, tar.bz2, tar.xz round trips
+PASS  HTTPS with certificate verification (https11.py): pypi.org and
+      www.python.org answer 200; expired.badssl.com, wrong.host.badssl.com
+      and self-signed.badssl.com are refused with SSLCertVerificationError
+PASS  threads (threads11.py): 8 threads with a lock, a queue between two
+      threads (1000 items), a ThreadPoolExecutor, threading.Timer; no
+      exception reported in the background
+PASS  thread identity (i386/tests/guest/threadident.py, 8 of 8): idents
+      stable through each thread's life and equal to the creator's handle
+      ident (400 threads); different for 16 threads alive at once (25
+      rounds); 1000 short threads; 400 threads started one after another
+      so that each has ended, unjoined, when the next starts (the case that
+      exposes the system bug of L14); every join() returns; afterwards
+      threading knows only the main thread; an RLock held by one thread is
+      not acquired by another and its release() by a non-owner raises
+      RuntimeError, re-entry works, no lost updates with 8 threads; no
+      exception reached excepthook, unraisablehook or stderr
+PASS  environment (r_env.py): del os.environ[...] removes the variable
+PASS  two interpreters at once (conc11.py): one started with Run, one in
+      the Shell, running for the same 10 s, each writing and reading its
+      own JSON file 40 times with the expected contents
+PASS  repeated runs in one Shell: eight python runs in a row after the
+      tests, each writing its own result file; all correct
+PASS  wheel-test.py: SUMMARY 6 checks passed, 0 failed
+PASS  install-test.py: SUMMARY 4/6, the result README states; the two
+      failing checks are L2. (Its label "zlib (system z1.library)" is
+      written for x86_64; on i386 zlib is linked into the interpreter.)
+PASS  unsupported features fail readably (limits.py): subprocess and
+      os.popen raise OSError "aros does not support processes"; pip on a
+      source distribution stops with the same error; os.system returns 0;
+      ensurepip reports pip 26.2.1; venv creates an environment; pydoc and
+      compileall work; ctypes.util.find_library fails (no _ctypes);
+      multiprocessing raises NotImplementedError "cannot determine number
+      of cpus"; webbrowser finds no browser
+PASS  glob (r_glob.py): patterns in /RAM, a subdirectory and SYS: match the
+      files os.listdir() lists. Amiga-style paths (RAM:x*) do not match:
+      glob works on Unix-style paths.
+FAIL  a socket in a worker thread (probe11.py, install-test.py): name
+      lookup raises gaierror "getaddrinfo failed", socket() raises OSError
+      errno 0. L2
+FAIL  Ctrl-C and Break (endmode.py wait), on a later boot of the same
+      installation: a script sleeping in a loop is not stopped by Ctrl-C in
+      its Shell, nor by `Break 1 C` from another Shell; 10 s later Status
+      still lists Python:python as process 1. L1
+NOT CHECKED  the Shell's colours after python -u (L8 of the x86_64 build),
+      moving directories between volumes (L13 of the x86_64 build), network
+      readiness over many boots (L12 of the x86_64 build).
+
+
+C. THE TWO FIXES AGAINST THE FIRST i386 BUILD
+---------------------------------------------
+The first i386 build (50aac094..., the binary of the first Lib/test pass)
+was accepted the same way and failed:
+FAIL  wheel-test.py (first build): pip installed the wheel ("Successfully
+      installed") and then ended with OSError errno 0 from
+      del os.environ[...]. Cause: unsetenv() of ABIv0 has no return
+      statement (L15). This interpreter: PASS 6 of 6.
+FAIL  threadident.py (first build): 349 of 400 threads in the "one after
+      another" case saw an ident different from the creator's; threads11.py
+      printed "Exception ignored ... KeyError" from threading._delete().
+      Cause: pthread_self() of ABIv0 can return another thread's number
+      (L14). This interpreter: PASS 8 of 8, no background exception.
+The system bugs are still present on the tested system (checked in both
+runs with C programs from i386/tests/c: tidprobe 108 of 400 threads
+mismatched; unsetenvprobe -1 with errno 0 after a successful delete); the
+interpreter no longer depends on them.
+The interpreter differs from the first build only in Modules/posixmodule.o
+and Python/thread.o (all other object files are identical after
+--strip-debug).
+
+
+D. Lib/test
+-----------
+CPython's test suite (Lib/test, 492 modules) with regrtest
+-v --timeout 900 -u all,-largefile,-extralargefile, one fresh interpreter
+per module, in QEMU/KVM, on the kit's i386 test disk with this interpreter
+put in place of the first build's:
+  467 modules that completed execution with the first builds of both
+  architectures (frozen list S1-v1), with this interpreter:
+    PASS 219, FAIL 131, ERROR 30, SKIP 86, ENV_CHANGED 1 (total 467)
+  with the first i386 build, same 467:
+    PASS 214, FAIL 101, ERROR 63, SKIP 86, ENV_CHANGED 2, NO_VERDICT 1
+  Module by module: every module that passed with the first build passes
+  (214); ERROR -> FAIL 30, ERROR -> PASS 4, ENV_CHANGED -> PASS 1,
+  NO_VERDICT -> ERROR 1; the others unchanged.
+  The other 25 modules: NOT RUN with this interpreter. They are the modules
+  that did not return within 1500 s in the first pass on either
+  architecture (17 on i386, 24 on x86_64, 25 together), kept for separate
+  diagnosis. With the first i386 build: 17 did not return; test__interpreters
+  and test_codeop passed; test_as_completed, test_init, test_logging and
+  test_struct failed; test_shutil errored; test_importlib changed the
+  environment. Those are results of the first build, not of this one.
+These are measurements of one pass, not a claim that the test suite
+passes.
+
+
+KNOWN LIMITS
+------------
+L1  No interruption: Ctrl-C and `Break <n> C` do not stop a running script
+    (measured, B). Recovery from a script that does not end: reboot.
+L2  Sockets only in the main thread. In any other thread, name lookup
+    fails (gaierror "getaddrinfo failed") and socket() fails with OSError
+    errno 0. Effect: network servers and clients in worker threads do not
+    work.
+L3  No processes: subprocess, os.popen and multiprocessing raise OSError
+    "aros does not support processes". os.system works.
+L4  Missing modules: _ctypes/ctypes, mmap, _curses/curses, readline, _dbm,
+    _gdbm, _tkinter, termios (and tty, pty), resource, syslog,
+    _posixsubprocess, _posixshmem, _multiprocessing, _uuid, _zstd, and
+    sqlite3/_sqlite3. Importing them fails.
+L5  pip installs pure-Python wheels only (sdists need subprocess). The
+    bundled pip is changed so that it loads without mmap.
+L11 Startup needs AROSTCP running (bsdsocket.library is opened at start).
+L14 (fixed in this interpreter; system bug) pthread_self() of ABIv0 can
+    return the number of another thread: GetThreadId() in
+    compiler/pthread/pthread.c at ABIv0_20250313-1 takes the first slot
+    with the caller's task pointer, including a finished, unjoined thread
+    whose task structure had the same address. ABIv11 fixed the lookup.
+    This interpreter takes each thread's number from pthread_create()
+    (patch 0025).
+L15 (fixed in this interpreter; system bug) unsetenv() of ABIv0 has no
+    return statement: it returns -1 with errno 0 after a successful delete.
+    This interpreter ignores its result, as CPython does on systems whose
+    unsetenv() returns nothing (config.site: ac_cv_broken_unsetenv=yes).
+    Effect that remains: os.unsetenv() cannot report errors on ABIv0.
+L16 Some ABIv0 C library calls fail without setting errno, so Python
+    reports OSError errno 0 ("Error"): seen in Lib/test for
+    fcntl(F_SETFL, O_NONBLOCK), os.fstat() on descriptor 1 in a test
+    harness, os.get_terminal_size() and os.open() near the descriptor
+    limit. Confirmed: the error is reported wrongly. Not established:
+    whether each of these operations should have succeeded.

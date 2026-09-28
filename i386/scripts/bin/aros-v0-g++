@@ -1,0 +1,7 @@
+#!/bin/sh
+# i386-aros-g++ with the ABIv0 20250313-1 release SDK as sysroot.
+# GCC 6.5 has no -ffile-prefix-map (GCC 8); -fdebug-prefix-map covers the debug
+# information. __FILE__ keeps the build path, which is fixed by the container
+# (/work/py, /i386) and so the same in every build and free of host paths.
+exec "$AROS_TOOLCHAIN/i386-aros-g++" --sysroot="$AROS_SDK" -march=i686 \
+    -fdebug-prefix-map="$REPO"=/src -fdebug-prefix-map="$WORK"=/work "$@"

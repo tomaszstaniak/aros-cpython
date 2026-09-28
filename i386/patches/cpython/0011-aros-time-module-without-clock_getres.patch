@@ -1,0 +1,58 @@
+From dd5146e893ca423e8d3492cbb766349469cccaa1 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:21:50 +0200
+Subject: [PATCH 11/22] aros: time module without clock_getres()
+
+The ABIv11 C library has no clock_getres() (see the pytime.c change),
+and timemodule.c calls it for time.get_clock_info(). Report the
+nanosecond granularity of struct timespec instead when it is missing.
+---
+ Modules/timemodule.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/Modules/timemodule.c b/Modules/timemodule.c
+index 5e43adb..0cf0471 100644
+--- a/Modules/timemodule.c
++++ b/Modules/timemodule.c
+@@ -1359,15 +1359,19 @@ py_process_time(time_module_state *state, PyTime_t *tp,
+ 
+         if (clock_gettime(clk_id, &ts) == 0) {
+             if (info) {
+-                struct timespec res;
+                 info->implementation = function;
+                 info->monotonic = 1;
+                 info->adjustable = 0;
++#ifdef HAVE_CLOCK_GETRES
++                struct timespec res;
+                 if (clock_getres(clk_id, &res)) {
+                     PyErr_SetFromErrno(PyExc_OSError);
+                     return -1;
+                 }
+                 info->resolution = res.tv_sec + res.tv_nsec * 1e-9;
++#else
++                info->resolution = 1e-9;
++#endif
+             }
+ 
+             if (_PyTime_FromTimespec(tp, &ts) < 0) {
+@@ -1570,15 +1574,19 @@ _PyTime_GetThreadTimeWithInfo(PyTime_t *tp, _Py_clock_info_t *info)
+         return -1;
+     }
+     if (info) {
+-        struct timespec res;
+         info->implementation = function;
+         info->monotonic = 1;
+         info->adjustable = 0;
++#ifdef HAVE_CLOCK_GETRES
++        struct timespec res;
+         if (clock_getres(clk_id, &res)) {
+             PyErr_SetFromErrno(PyExc_OSError);
+             return -1;
+         }
+         info->resolution = res.tv_sec + res.tv_nsec * 1e-9;
++#else
++        info->resolution = 1e-9;
++#endif
+     }
+ 
+     if (_PyTime_FromTimespec(tp, &ts) < 0) {

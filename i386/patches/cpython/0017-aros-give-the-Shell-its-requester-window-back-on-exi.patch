@@ -1,0 +1,47 @@
+From be192850616c37b05138498ef6ccf0f1730fefb4 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 14:04:09 +0200
+Subject: [PATCH 17/22] aros: give the Shell its requester window back on exit
+
+A command runs on its Shell's process. pr_WindowPtr set to -1 for the
+interpreter stayed -1 after it exited, so that Shell stopped showing DOS
+requesters. The old value is saved and restored from atexit().
+---
+ Programs/python.c | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/Programs/python.c b/Programs/python.c
+index 4c99a2a..66a9d24 100644
+--- a/Programs/python.c
++++ b/Programs/python.c
+@@ -14,6 +14,18 @@ wmain(int argc, wchar_t **argv)
+     return Py_Main(argc, argv);
+ }
+ #else
++#ifdef __AROS__
++/* A command runs on its Shell's process, so the Shell inherits whatever the
++   interpreter leaves in it. */
++static APTR aros_saved_windowptr;
++
++static void
++aros_restore_windowptr(void)
++{
++    ((struct Process *)FindTask(NULL))->pr_WindowPtr = aros_saved_windowptr;
++}
++#endif
++
+ int
+ main(int argc, char **argv)
+ {
+@@ -24,7 +36,10 @@ main(int argc, char **argv)
+        missing volume otherwise raises "Please insert volume ..." and waits
+        for a click that never comes. With pr_WindowPtr set to -1 the DOS
+        call fails at once and the stat() answers ENOENT. */
+-    ((struct Process *)FindTask(NULL))->pr_WindowPtr = (APTR)-1;
++    struct Process *me = (struct Process *)FindTask(NULL);
++    aros_saved_windowptr = me->pr_WindowPtr;
++    atexit(aros_restore_windowptr);
++    me->pr_WindowPtr = (APTR)-1;
+ #endif
+     return Py_BytesMain(argc, argv);
+ }

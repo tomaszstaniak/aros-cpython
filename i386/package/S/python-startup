@@ -1,0 +1,6 @@
+; appended to S:User-Startup by the installer
+; The boot-time Assign is what makes the interpreter find its stdlib (/Python).
+; The launcher itself is installed to C: (always on the path) so that typing
+; `python` works from any Shell, including Wanderer's NewShell, after a reboot -
+; `Path Python:S ADD` here would only affect the boot shell, not a NewShell.
+Assign Python: SYS:Python

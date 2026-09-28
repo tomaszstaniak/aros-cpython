@@ -1,0 +1,48 @@
+From 31b1e5919a9f0ebc1bae080ef81e3d4c3bbaf98f Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Sun, 27 Sep 2026 21:07:27 +0200
+Subject: [PATCH] aros: accept the i386 ABIv0 release line (abiv0, ABI major 0)
+
+The deadwood2 ABIv0 releases for i386 (ABIv0_20250313-1 and earlier) record
+AROS_ABI_VERSION_MAJOR 0 in rom/aros/arosinquirea.c and write it to
+Prefs/Env-Archive/ABI, as the ABIv11 line records 11. Their binaries run on
+neither mainline nor ABIv11, so they get their own pair, abiv0:0, and with it
+their own SOABI, platform tag and sysconfig platform (aros_abiv0-i386).
+---
+ configure    | 4 +++-
+ configure.ac | 3 ++-
+ 2 files changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/configure b/configure
+index dc35e17..38b04b1 100755
+--- a/configure
++++ b/configure
+@@ -4666,8 +4666,10 @@ printf %s "checking for the AROS ABI... " >&6; }
+      ;; #(
+   abiv11:11) :
+      ;; #(
++  abiv0:0) :
++     ;; #(
+   *) :
+-    as_fn_error $? "unknown AROS ABI '$AROS_ABI' with AROS_ABI_MAJOR '$AROS_ABI_MAJOR'; known pairs: AROS_ABI=abiv1 AROS_ABI_MAJOR=-1 (mainline), AROS_ABI=abiv11 AROS_ABI_MAJOR=11 (AROS One)" "$LINENO" 5 ;;
++    as_fn_error $? "unknown AROS ABI '$AROS_ABI' with AROS_ABI_MAJOR '$AROS_ABI_MAJOR'; known pairs: AROS_ABI=abiv1 AROS_ABI_MAJOR=-1 (mainline), AROS_ABI=abiv11 AROS_ABI_MAJOR=11 (AROS One), AROS_ABI=abiv0 AROS_ABI_MAJOR=0 (i386 ABIv0 releases)" "$LINENO" 5 ;;
+ esac
+   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $AROS_ABI (AROS_ABI_VERSION_MAJOR $AROS_ABI_MAJOR)" >&5
+ printf "%s\n" "$AROS_ABI (AROS_ABI_VERSION_MAJOR $AROS_ABI_MAJOR)" >&6; }
+diff --git a/configure.ac b/configure.ac
+index fe897c5..22f63e1 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -840,7 +840,8 @@ if test "$ac_sys_system" = AROS; then
+   AS_CASE([$AROS_ABI:$AROS_ABI_MAJOR],
+     [abiv1:-1], [],
+     [abiv11:11], [],
+-    [AC_MSG_ERROR([unknown AROS ABI '$AROS_ABI' with AROS_ABI_MAJOR '$AROS_ABI_MAJOR'; known pairs: AROS_ABI=abiv1 AROS_ABI_MAJOR=-1 (mainline), AROS_ABI=abiv11 AROS_ABI_MAJOR=11 (AROS One)])])
++    [abiv0:0], [],
++    [AC_MSG_ERROR([unknown AROS ABI '$AROS_ABI' with AROS_ABI_MAJOR '$AROS_ABI_MAJOR'; known pairs: AROS_ABI=abiv1 AROS_ABI_MAJOR=-1 (mainline), AROS_ABI=abiv11 AROS_ABI_MAJOR=11 (AROS One), AROS_ABI=abiv0 AROS_ABI_MAJOR=0 (i386 ABIv0 releases)])])
+   AC_MSG_RESULT([$AROS_ABI (AROS_ABI_VERSION_MAJOR $AROS_ABI_MAJOR)])
+   _PYTHON_HOST_PLATFORM="${MACHDEP}_$AROS_ABI${_host_ident:+-$_host_ident}"
+ fi
+-- 
+2.54.0 (Apple Git-157)
+

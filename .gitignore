@@ -1,3 +1,11 @@
 /work/
 __pycache__/
 .DS_Store
+i386/python.*
+i386/install-*.tar
+i386/tests/c/tidprobe
+i386/tests/c/unsetenvprobe
+i386/downloads/
+i386/sdk/
+i386/out/
+i386/container/Dockerfile.py.local

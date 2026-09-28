@@ -1,0 +1,53 @@
+pip 26.2.1 (bundled with CPython 3.14.7) without an mmap module.
+ABIv11 AROS has no mmap(), so CPython has no mmap module there. pip's vendored
+cachecontrol and rich import it at load time, and pip install stopped with
+ModuleNotFoundError. cachecontrol now reads the cached data instead; rich
+names mmap only in an annotation. mmap itself stays missing.
+Apply in site-packages with: patch -p0
+
+diff --color -ru --color=never pip.orig/_vendor/cachecontrol/filewrapper.py pip/_vendor/cachecontrol/filewrapper.py
+--- pip.orig/_vendor/cachecontrol/filewrapper.py	2026-09-25 15:55:44
++++ pip/_vendor/cachecontrol/filewrapper.py	2026-09-25 15:55:44
+@@ -3,7 +3,10 @@
+ # SPDX-License-Identifier: Apache-2.0
+ from __future__ import annotations
+ 
+-import mmap
++try:
++    import mmap
++except ImportError:  # AROS: no mmap module; the data is read instead
++    mmap = None
+ from tempfile import NamedTemporaryFile
+ from typing import TYPE_CHECKING, Any, Callable
+ 
+@@ -80,9 +83,12 @@
+                 # a view directly into the filesystem's memory cache, so it
+                 # doesn't result in duplicate memory use.
+                 self.__buf.seek(0, 0)
+-                result = memoryview(
+-                    mmap.mmap(self.__buf.fileno(), 0, access=mmap.ACCESS_READ)
+-                )
++                if mmap is None:
++                    result = self.__buf.read()
++                else:
++                    result = memoryview(
++                        mmap.mmap(self.__buf.fileno(), 0, access=mmap.ACCESS_READ)
++                    )
+             self.__callback(result)
+ 
+         # We assign this to None here, because otherwise we can get into
+diff --color -ru --color=never pip.orig/_vendor/rich/progress.py pip/_vendor/rich/progress.py
+--- pip.orig/_vendor/rich/progress.py	2026-09-25 15:55:44
++++ pip/_vendor/rich/progress.py	2026-09-25 15:55:44
+@@ -9,7 +9,10 @@
+ from datetime import timedelta
+ from io import RawIOBase, UnsupportedOperation
+ from math import ceil
+-from mmap import mmap
++try:
++    from mmap import mmap
++except ImportError:  # AROS: no mmap module; mmap is only named in an annotation
++    pass
+ from operator import length_hint
+ from os import PathLike, stat
+ from threading import Event, RLock, Thread

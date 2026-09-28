@@ -1,0 +1,202 @@
+From: aros-cpython i386 port
+Subject: [PATCH] aros: stable thread idents on ABIv0, independent of
+ pthread_self()
+
+On the i386 ABIv0 release, pthread_self() can return the number of another
+thread. GetThreadId() in compiler/pthread/pthread.c (ABIv0_20250313-1)
+returns the first thread slot whose exec task pointer equals the caller's,
+and a finished thread keeps its slot until it is joined; when a new
+thread's task structure is allocated at the address of such a thread's,
+the new thread gets the old number. ABIv11 fixed the lookup.
+
+Measured on ABIv0_20250313-1: tests/c/tidprobe.c found pthread_self()
+different from the pthread_t that pthread_create() returned in 47 of 400
+threads; in Python one of 200 threads saw threading.get_ident() change
+during its life (3, then 9), and threading._delete() raised KeyError.
+
+A thread started by CPython now learns its number from pthread_create() in
+the creating thread (a semaphore makes it wait until the creator has stored
+it) and records (task, number) in a table before running Python code;
+PyThread_get_thread_ident_ex() looks the calling task up there. The entry
+is removed before the thread ends, including through PyThread_exit_thread(),
+so a later task at the same address cannot match it. The main thread and
+threads not started by CPython keep using pthread_self(). Idents keep their
+form (pthread number plus one, patch 0021), so the conversions of patch
+0023 are unchanged. Only builds that define _PY_AROS_ABIV0 (the i386
+abiv0compat.h) are affected.
+---
+--- a/Python/thread_pthread.h
++++ b/Python/thread_pthread.h
+@@ -16,6 +16,13 @@
+ #undef destructor
+ #endif
+ #include <signal.h>
++#ifdef _PY_AROS_ABIV0
++/* exec's FindTask(), Forbid() and semaphores. exec/types.h defines GLOBAL,
++   which CPython does not use here; undefined as in _pickle.c (patch 0006). */
++#  include <proto/exec.h>
++#  include <exec/semaphores.h>
++#  undef GLOBAL
++#endif
+ #include <unistd.h>             /* pause(), also getthrid() on OpenBSD */
+ 
+ #if defined(__linux__)
+@@ -228,8 +235,84 @@
+ typedef struct {
+     void (*func) (void *);
+     void *arg;
++#ifdef _PY_AROS_ABIV0
++    struct SignalSemaphore started; /* held by the creator until th is set */
++    pthread_t th;
++#endif
+ } pythread_callback;
+ 
++#ifdef _PY_AROS_ABIV0
++/* AROS i386 ABIv0: pthread_self() can name another thread. Its
++   GetThreadId() (compiler/pthread/pthread.c at ABIv0_20250313-1) returns the
++   first slot whose exec task pointer equals the caller's, and a finished,
++   not yet joined thread keeps its slot; when the new thread's task structure
++   is allocated at the old one's address, pthread_self() returns the old
++   number. Measured: 47 of 400 threads (tests/c/tidprobe.c), and in Python a
++   thread whose ident changed during its life, which made threading's
++   registry raise KeyError. ABIv11 fixed the lookup (it skips finished
++   slots).
++
++   So a thread started here learns its number from pthread_create() in the
++   creating thread, and records (task, number) in this table before it runs
++   any Python code. The entry goes away before the thread ends, so a later
++   task at the same address cannot match it. PyThread_get_thread_ident_ex()
++   looks the calling task up here; the main thread and threads started
++   outside this file are not in the table and use pthread_self(), which is
++   right for the main thread (slot 0, found first). Guarded by Forbid(): the
++   table is small and the calls are short. */
++#define ABIV0_THREADS PTHREAD_THREADS_MAX
++static struct { struct Task *task; pthread_t th; } abiv0_threads[ABIV0_THREADS];
++static int abiv0_top; /* one past the highest slot ever used */
++
++static void
++abiv0_register(pthread_t th)
++{
++    struct Task *me = FindTask(NULL);
++    Forbid();
++    for (int i = 0; i < ABIV0_THREADS; i++) {
++        if (abiv0_threads[i].task == NULL) {
++            abiv0_threads[i].task = me;
++            abiv0_threads[i].th = th;
++            if (i >= abiv0_top)
++                abiv0_top = i + 1;
++            break;
++        }
++    }
++    Permit();
++}
++
++static void
++abiv0_unregister(void)
++{
++    struct Task *me = FindTask(NULL);
++    Forbid();
++    for (int i = 0; i < abiv0_top; i++) {
++        if (abiv0_threads[i].task == me) {
++            abiv0_threads[i].task = NULL;
++            break;
++        }
++    }
++    Permit();
++}
++
++static int
++abiv0_lookup(pthread_t *th)
++{
++    struct Task *me = FindTask(NULL);
++    int found = 0;
++    Forbid();
++    for (int i = 0; i < abiv0_top; i++) {
++        if (abiv0_threads[i].task == me) {
++            *th = abiv0_threads[i].th;
++            found = 1;
++            break;
++        }
++    }
++    Permit();
++    return found;
++}
++#endif
++
+ static void *
+ pythread_wrapper(void *arg)
+ {
+@@ -237,9 +320,22 @@
+     pythread_callback *callback = arg;
+     void (*func)(void *) = callback->func;
+     void *func_arg = callback->arg;
++#ifdef _PY_AROS_ABIV0
++    /* wait until the creator has stored this thread's number */
++    ObtainSemaphore(&callback->started);
++    ReleaseSemaphore(&callback->started);
++    abiv0_register(callback->th);
++    /* freed after func(): the creator may still be inside
++       ReleaseSemaphore() on this structure when the semaphore is granted */
++#else
+     PyMem_RawFree(arg);
++#endif
+ 
+     func(func_arg);
++#ifdef _PY_AROS_ABIV0
++    abiv0_unregister();
++    PyMem_RawFree(arg);
++#endif
+     return NULL;
+ }
+ 
+@@ -285,6 +381,10 @@
+ 
+     callback->func = func;
+     callback->arg = arg;
++#ifdef _PY_AROS_ABIV0
++    InitSemaphore(&callback->started);
++    ObtainSemaphore(&callback->started);
++#endif
+ 
+     status = pthread_create(&th,
+ #if defined(THREAD_STACK_SIZE) || defined(PTHREAD_SYSTEM_SCHED_SUPPORTED)
+@@ -299,9 +399,17 @@
+ #endif
+ 
+     if (status != 0) {
++#ifdef _PY_AROS_ABIV0
++        ReleaseSemaphore(&callback->started);
++#endif
+         PyMem_RawFree(callback);
+         return -1;
+     }
++#ifdef _PY_AROS_ABIV0
++    /* the new thread waits for this before it reads th */
++    callback->th = th;
++    ReleaseSemaphore(&callback->started);
++#endif
+     *out_id = th;
+     return 0;
+ }
+@@ -378,6 +486,11 @@
+     volatile pthread_t threadid;
+     if (!initialized)
+         PyThread_init_thread();
++#ifdef _PY_AROS_ABIV0
++    pthread_t own;
++    if (abiv0_lookup(&own))
++        return _pthread_t_to_ident(own);
++#endif
+     threadid = pthread_self();
+     return _pthread_t_to_ident(threadid);
+ }
+@@ -435,6 +548,9 @@
+      */
+     abort();
+ #else
++#ifdef _PY_AROS_ABIV0
++    abiv0_unregister();
++#endif
+     pthread_exit(0);
+ #endif
+ }

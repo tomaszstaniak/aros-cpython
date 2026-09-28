@@ -1,0 +1,30 @@
+From 468c75b8dfdd9dcddbfca5f3d6f0639a535ebfe4 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 12:20:42 +0200
+Subject: [PATCH 14/22] aros: _Py_wfopen() with a zeroed mode buffer
+
+The first run on ABIv11 stopped in getpath with "OSError: [Errno 22]
+Invalid argument" while reading pyvenv.cfg. _Py_wfopen() converts its
+mode with wcstombs(), and the ABIv11 wcstombs() does not write the
+terminating NUL (L"rb" into a buffer of 'X' leaves 72 62 58 58), so
+fopen() gets "rb" followed by garbage and returns EINVAL. Zero the
+buffer first.
+---
+ Python/fileutils.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/Python/fileutils.c b/Python/fileutils.c
+index 78603d4..5e5e704 100644
+--- a/Python/fileutils.c
++++ b/Python/fileutils.c
+@@ -1719,7 +1719,9 @@ _Py_wfopen(const wchar_t *path, const wchar_t *mode)
+     }
+ #ifndef MS_WINDOWS
+     char *cpath;
+-    char cmode[10];
++    /* Zeroed: the ABIv11 AROS wcstombs() does not write the terminating
++       NUL, and fopen() then rejects the mode with EINVAL. */
++    char cmode[10] = {0};
+     size_t r;
+     r = wcstombs(cmode, mode, 10);
+     if (r == DECODE_ERROR || r >= 10) {

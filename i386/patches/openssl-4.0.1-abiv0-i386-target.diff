@@ -1,0 +1,23 @@
+diff --git a/Configurations/15-aros-abiv0.conf b/Configurations/15-aros-abiv0.conf
+new file mode 100644
+--- /dev/null
++++ b/Configurations/15-aros-abiv0.conf
+@@ -0,0 +1,18 @@
++## AROS i386, ABIv0 release line (deadwood2 ABIv0_20250313-1). The same as
++## aros-v11-x86_64 (15-aros-v11.conf) except for the 32-bit bignum layout.
++my %targets = (
++    "aros-abiv0-i386" => {
++        inherit_from     => [ "BASE_unix" ],
++        sys_id           => "AROS",
++        CC               => "$ENV{'CC'}",
++        CFLAGS           => "$ENV{'AROS_CFLAGS'}",
++        cflags           => add("-DNO_FORK -DOPENSSL_NO_SECURE_MEMORY -D_XOPEN_SOURCE=600 -D__BSD_VISIBLE=1"),
++        ARFLAGS          => "qc",
++        RANLIB           => "$ENV{'RANLIB'}",
++        ex_libs          => "-ljitterentropy -lnet -lpthread",
++        bn_ops           => "BN_LLONG",
++        perlasm_scheme   => "elf",
++        thread_scheme    => "pthreads",
++        perl_platform    => 'Unix',
++    },
++);

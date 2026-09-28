@@ -1,0 +1,90 @@
+# Answers configure cannot find out when cross-compiling CPython for AROS
+# i386 ABIv0 (deadwood2 ABIv0_20250313-1). Each entry is a claim about that
+# release's SDK (the Development directory of its pc-i386 ISO), checked there
+# with i386-aros-nm on the link libraries and by reading the headers; the
+# reason is next to it. The list started as the ABIv11 one; every entry was
+# checked again for ABIv0 and the ABIv0 evidence is what is written here.
+
+ac_cv_file__dev_ptmx=no          # no /dev on AROS
+ac_cv_file__dev_ptc=no
+ac_cv_little_endian_double=yes   # i386
+ac_cv_big_endian_double=no
+ac_cv_mixed_endian_double=no
+
+# libpthread.a has pthread_getattr_np() but not pthread_attr_getguardsize(),
+# which ceval.c's stack-limit probe needs together with it.
+ac_cv_func_pthread_getattr_np=no
+
+# Inspects other processes' memory; nothing like it on AROS, and there is no
+# getpagesize() in libcrt.a.
+py_cv_module__remote_debugging=n/a
+
+# sys/file.h declares flock() only #ifndef _POSIX_SOURCE, which the feature
+# macros CPython builds with turn on; configure's test compiles without them.
+ac_cv_flock_decl=no
+
+# libcrt.a has vfork() but no fork(), execve(), execv() or posix_spawn():
+# no way to start a program with argv, so no subprocess.
+py_cv_module__posixsubprocess=n/a
+
+# sys/resource.h (aros/posixc) has no RLIM_NLIMITS, and there is no
+# getpagesize().
+py_cv_module_resource=n/a
+
+# syslog() is a bsdsocket.library call (sys/syslog.h includes the socket
+# library's protos), not a C library function.
+py_cv_module_syslog=n/a
+
+# libcrt.a has tcgetattr()/tcsetattr() but not tcsendbreak(), tcdrain(),
+# tcflush() or tcflow(), which the module needs.
+py_cv_module_termios=n/a
+
+# sem_open() in semaphore.h has fixed arguments instead of POSIX's variadic
+# ones, and with no fork() there are no processes for the module to
+# coordinate.
+py_cv_module__multiprocessing=n/a
+
+# bsdsocket.library's calls are inline functions in <proto/socket.h>, which
+# <netdb.h> includes and <sys/socket.h> does not; configure's checks include
+# only the latter (or link, and there is no symbol to link).
+ac_cv_func_socket=yes
+ac_cv_func_bind=yes
+ac_cv_func_connect=yes
+ac_cv_func_accept=yes
+ac_cv_func_listen=yes
+ac_cv_func_getpeername=yes
+ac_cv_func_getsockname=yes
+ac_cv_func_setsockopt=yes
+ac_cv_func_recvfrom=yes
+ac_cv_func_sendto=yes
+ac_cv_func_shutdown=yes
+ac_cv_func_gethostname=yes
+
+# The ABIv0 SDK has no libintl at all.
+ac_cv_header_libintl_h=no
+ac_cv_lib_intl_textdomain=no
+
+# struct stat in aros/posixc/sys/stat.h has no st_flags member on ABIv0
+# (configure finds that too; stated here so both ABIs agree).
+ac_cv_member_struct_stat_st_flags=no
+
+# The HACL* Blake2 SIMD variants allocate with C11 aligned_alloc(), which
+# the ABIv0 C library does not have. Without them hashlib uses the portable
+# Blake2 code; the i686 baseline this build targets has no AVX2 anyway.
+ax_cv_check_cflags__Werror__msse__msse2__msse3__msse4_1__msse4_2=no
+ax_cv_check_cflags__Werror__mavx2=no
+
+# libcrt.a defines a realpath symbol, but aros/posixc/stdlib.h marks
+# realpath() NOTIMPL. Until a probe on the target shows it works, CPython
+# uses its own path resolution.
+ac_cv_func_realpath=no
+
+# unsetenv() in compiler/crt/posixc/unsetenv.c at ABIv0_20250313-1 has no
+# return statement: it calls DeleteVar() and falls off the end of an int
+# function. Measured (tests/c/unsetenvprobe.c): -1 with errno 0 after a
+# successful delete, 0 for a name that was never set. CPython's check for
+# failure then raised OSError(0) on every del os.environ[...], and pip, which
+# deletes a variable on exit, ended every install with a traceback. CPython's
+# own answer for a C library whose unsetenv() result cannot be used: ignore
+# it. ABIv11 fixed the function (return 0;), so this is ABIv0 only.
+ac_cv_broken_unsetenv=yes

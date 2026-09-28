@@ -1,0 +1,64 @@
+From 95b3919b947a1e23c8de8b058ed9861b03e8ba12 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:03:36 +0200
+Subject: [PATCH 03/22] aros: 32-bit time_t, and no clock_getres()
+
+On ABIv11 time_t is a signed 32-bit int on x86_64 too (SIZEOF_TIME_T 4,
+aros/types/time_t.h), which pytime.c does not accept, and the C library
+has no clock_getres(). Accept an int-sized time_t, and report the
+realtime clock's resolution as the nanosecond granularity of its type
+when clock_getres() is missing.
+---
+ Python/pytime.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/Python/pytime.c b/Python/pytime.c
+index 894f6e7..e3f9a3b 100644
+--- a/Python/pytime.c
++++ b/Python/pytime.c
+@@ -45,6 +45,10 @@
+ #elif SIZEOF_TIME_T == SIZEOF_LONG
+ #  define PY_TIME_T_MAX LONG_MAX
+ #  define PY_TIME_T_MIN LONG_MIN
++#elif SIZEOF_TIME_T == SIZEOF_INT
++/* AROS: time_t is a signed 32-bit int even on 64-bit targets. */
++#  define PY_TIME_T_MAX INT_MAX
++#  define PY_TIME_T_MIN INT_MIN
+ #else
+ #  error "unsupported time_t size"
+ #endif
+@@ -959,10 +963,15 @@ py_get_system_clock(PyTime_t *tp, _Py_clock_info_t *info, int raise_exc)
+         info->implementation = "clock_gettime(CLOCK_REALTIME)";
+         info->monotonic = 0;
+         info->adjustable = 1;
++#ifdef HAVE_CLOCK_GETRES
+         if (clock_getres(CLOCK_REALTIME, &res) == 0) {
+             info->resolution = (double)res.tv_sec + (double)res.tv_nsec * 1e-9;
+         }
+-        else {
++        else
++#else
++        (void)res;
++#endif
++        {
+             info->resolution = 1e-9;
+         }
+     }
+@@ -1207,12 +1216,17 @@ py_get_monotonic_clock(PyTime_t *tp, _Py_clock_info_t *info, int raise_exc)
+         info->monotonic = 1;
+         info->implementation = implementation;
+         info->adjustable = 0;
++#ifdef HAVE_CLOCK_GETRES
+         struct timespec res;
+         if (clock_getres(clk_id, &res) != 0) {
+             PyErr_SetFromErrno(PyExc_OSError);
+             return -1;
+         }
+         info->resolution = res.tv_sec + res.tv_nsec * 1e-9;
++#else
++        /* AROS: no clock_getres(); clock_gettime() is nanosecond-typed. */
++        info->resolution = 1e-9;
++#endif
+     }
+ #endif
+     return 0;
