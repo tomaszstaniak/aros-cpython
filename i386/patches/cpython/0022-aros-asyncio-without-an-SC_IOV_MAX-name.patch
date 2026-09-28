@@ -1,0 +1,29 @@
+From 73d913b1387ff7b107ebd4a4048a2c8eb9672053 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 15:35:57 +0200
+Subject: [PATCH 22/22] aros: asyncio without an SC_IOV_MAX name
+
+asyncio's selector_events asks os.sysconf('SC_IOV_MAX') when the socket
+has sendmsg(), and handles only OSError. On ABIv11 sendmsg() exists but
+the name is unknown, so import asyncio raised ValueError (and doctest
+and pdb with it). Treat that like OSError: fall back to send().
+---
+ Lib/asyncio/selector_events.py | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/Lib/asyncio/selector_events.py b/Lib/asyncio/selector_events.py
+index 0c96e81..14523f1 100644
+--- a/Lib/asyncio/selector_events.py
++++ b/Lib/asyncio/selector_events.py
+@@ -35,8 +35,9 @@ _HAS_SENDMSG = hasattr(socket.socket, 'sendmsg')
+ if _HAS_SENDMSG:
+     try:
+         SC_IOV_MAX = os.sysconf('SC_IOV_MAX')
+-    except OSError:
+-        # Fallback to send
++    except (OSError, ValueError):
++        # Fallback to send.  ValueError: the platform has sendmsg() but no
++        # SC_IOV_MAX name at all (AROS).
+         _HAS_SENDMSG = False
+ 
+ def _test_selector_event(selector, fd, event):

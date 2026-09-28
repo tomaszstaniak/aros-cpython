@@ -1,0 +1,33 @@
+From 85475f1eec00cee433c51e1609817750266cc77a Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 13:12:28 +0200
+Subject: [PATCH 16/22] aros: Py_ssize_t limit from the type, not from
+ SSIZE_MAX
+
+The ABIv11 SDK defines SSIZE_MAX as _POSIX_SSIZE_MAX (32767) while its
+ssize_t is a 64-bit long. PY_SSIZE_T_MAX taken from it made PyMem_Malloc()
+refuse every request above 32 KiB, and startup failed importing encodings
+with MemoryError although the system had 1.9 GB free.
+---
+ Include/pyport.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/Include/pyport.h b/Include/pyport.h
+index 8922ff4..49e336b 100644
+--- a/Include/pyport.h
++++ b/Include/pyport.h
+@@ -154,7 +154,14 @@ typedef intptr_t        Py_intptr_t;
+ 
+ #elif HAVE_SSIZE_T
+ typedef ssize_t         Py_ssize_t;
++#   if defined(__AROS__) && SIZEOF_SIZE_T == SIZEOF_LONG
++/* The ABIv11 SDK's <limits.h> defines SSIZE_MAX as _POSIX_SSIZE_MAX, the
++   POSIX floor of 32767, although its ssize_t is a long. Taken from there,
++   every allocation over 32 KiB fails the overflow check as MemoryError. */
++#   define PY_SSIZE_T_MAX LONG_MAX
++#   else
+ #   define PY_SSIZE_T_MAX SSIZE_MAX
++#   endif
+ #elif SIZEOF_VOID_P == SIZEOF_SIZE_T
+ typedef Py_intptr_t     Py_ssize_t;
+ #   define PY_SSIZE_T_MAX INTPTR_MAX

@@ -1,0 +1,10 @@
+#!/bin/sh
+# i386-aros-gcc with the ABIv0 20250313-1 release SDK as sysroot.
+# GCC 6.5 has no -ffile-prefix-map (GCC 8); -fdebug-prefix-map covers the debug
+# information. __FILE__ keeps the build path, which is fixed by the container
+# (/work/py, /i386) and so the same in every build and free of host paths.
+# -march=i686: the compiler defaults to i386, which has no cmpxchg, so C11
+# atomics (which CPython 3.14 relies on) would become libatomic calls. The
+# ABIv0 system itself is built for i686.
+exec "$AROS_TOOLCHAIN/i386-aros-gcc" --sysroot="$AROS_SDK" -march=i686 \
+    -fdebug-prefix-map="$REPO"=/src -fdebug-prefix-map="$WORK"=/work "$@"

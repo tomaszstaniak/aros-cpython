@@ -1,0 +1,29 @@
+From 7e8851dd7e8dd3d65ab90bfdf573eb22a21235a9 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:12:48 +0200
+Subject: [PATCH 07/22] aros: select.select() through bsdsocket's WaitSelect()
+
+The ABIv11 C library has no select(); it is bsdsocket.library's
+WaitSelect(), so selectmodule.c does not compile. Map select() to it.
+It waits on sockets only, which is what socketserver and asyncio use.
+---
+ Modules/selectmodule.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/Modules/selectmodule.c b/Modules/selectmodule.c
+index 42bf115..1d6bfb4 100644
+--- a/Modules/selectmodule.c
++++ b/Modules/selectmodule.c
+@@ -13,6 +13,12 @@
+ #endif
+ 
+ #include "Python.h"
++#ifdef __AROS__
++/* ABIv11 AROS: select() is bsdsocket.library's WaitSelect(), declared by
++   <proto/bsdsocket.h> and not by the C library. It waits on sockets only. */
++#  include <proto/bsdsocket.h>
++#  define select(n, r, w, e, t) WaitSelect((n), (r), (w), (e), (t), NULL)
++#endif
+ #include "pycore_fileutils.h"     // _Py_set_inheritable()
+ #include "pycore_time.h"          // _PyTime_FromSecondsObject()
+ 

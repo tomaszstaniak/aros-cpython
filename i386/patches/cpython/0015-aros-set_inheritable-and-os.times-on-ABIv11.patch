@@ -1,0 +1,45 @@
+From 5bc08288849e04b477f0ed43c20d4ae6c791bf14 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 12:21:13 +0200
+Subject: [PATCH 15/22] aros: set_inheritable() and os.times() on ABIv11
+
+Measured on ABIv11 2026.09: ioctl(fd, FIOCLEX) on a file fails with
+ENOSYS (returning 14, not -1) while fcntl(F_SETFD, FD_CLOEXEC) works,
+so fall back to fcntl() on ENOSYS and EINVAL as for ENOTTY. And
+sysconf(_SC_CLK_TCK) returns -1 with EINVAL, so os.times() uses
+CLOCKS_PER_SEC (50 there).
+---
+ Python/fileutils.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/Python/fileutils.c b/Python/fileutils.c
+index 5e5e704..a30684a 100644
+--- a/Python/fileutils.c
++++ b/Python/fileutils.c
+@@ -1523,7 +1523,11 @@ set_inheritable(int fd, int inheritable, int raise, int *atomic_flag_works)
+         }
+         else
+ #endif
+-        if (errno != ENOTTY && errno != EACCES) {
++        /* ABIv11 AROS: ioctl(FIOCLEX) on a file fails with ENOSYS (and
++           returns 14, not -1), while fcntl(F_SETFD) works; fall back to
++           fcntl() as for ENOTTY, and on EINVAL too. */
++        if (errno != ENOTTY && errno != EACCES && errno != ENOSYS
++            && errno != EINVAL) {
+             if (raise)
+                 PyErr_SetFromErrno(PyExc_OSError);
+             return -1;
+@@ -3050,7 +3054,13 @@ _Py_GetTicksPerSecond(long *ticks_per_second)
+ #if defined(HAVE_SYSCONF) && defined(_SC_CLK_TCK)
+     long value = sysconf(_SC_CLK_TCK);
+     if (value < 1) {
++#if defined(__AROS__) && defined(CLOCKS_PER_SEC)
++        /* ABIv11 AROS: sysconf(_SC_CLK_TCK) returns -1 (EINVAL); times()
++           counts at CLOCKS_PER_SEC. */
++        value = CLOCKS_PER_SEC;
++#else
+         return -1;
++#endif
+     }
+     *ticks_per_second = value;
+ #elif defined(HZ)

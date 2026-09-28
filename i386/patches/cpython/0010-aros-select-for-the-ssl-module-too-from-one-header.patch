@@ -1,0 +1,63 @@
+From e42fc5bfd69c7e9c99c0e465652894a275621df6 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:21:30 +0200
+Subject: [PATCH 10/22] aros: select() for the ssl module too, from one header
+
+_ssl.c waits on its socket with select() for timeouts, and does not
+compile on ABIv11 either. Move the WaitSelect() mapping into
+Modules/aros_select.h and use it in both modules.
+---
+ Modules/_ssl.c         |  1 +
+ Modules/aros_select.h  | 12 ++++++++++++
+ Modules/selectmodule.c |  7 +------
+ 3 files changed, 14 insertions(+), 6 deletions(-)
+ create mode 100644 Modules/aros_select.h
+
+diff --git a/Modules/_ssl.c b/Modules/_ssl.c
+index 5258df3..8b1aa25 100644
+--- a/Modules/_ssl.c
++++ b/Modules/_ssl.c
+@@ -26,6 +26,7 @@
+ #define OPENSSL_NO_DEPRECATED 1
+ 
+ #include "Python.h"
++#include "aros_select.h"         // select() on ABIv11 AROS
+ #include "pycore_critical_section.h" // Py_BEGIN_CRITICAL_SECTION()
+ #include "pycore_fileutils.h"     // _PyIsSelectable_fd()
+ #include "pycore_long.h"          // _PyLong_UnsignedLongLong_Converter()
+diff --git a/Modules/aros_select.h b/Modules/aros_select.h
+new file mode 100644
+index 0000000..50d1516
+--- /dev/null
++++ b/Modules/aros_select.h
+@@ -0,0 +1,12 @@
++/* ABIv11 AROS: select() is bsdsocket.library's WaitSelect(), declared by
++   <proto/bsdsocket.h> and not by the C library. It waits on sockets only,
++   which is what select.select(), socketserver, asyncio and the ssl module's
++   socket timeouts use. */
++#ifndef AROS_SELECT_H
++#define AROS_SELECT_H
++#ifdef __AROS__
++#  include <proto/bsdsocket.h>
++#  undef select
++#  define select(n, r, w, e, t) WaitSelect((n), (r), (w), (e), (t), NULL)
++#endif
++#endif
+diff --git a/Modules/selectmodule.c b/Modules/selectmodule.c
+index 1d6bfb4..b210a5e 100644
+--- a/Modules/selectmodule.c
++++ b/Modules/selectmodule.c
+@@ -13,12 +13,7 @@
+ #endif
+ 
+ #include "Python.h"
+-#ifdef __AROS__
+-/* ABIv11 AROS: select() is bsdsocket.library's WaitSelect(), declared by
+-   <proto/bsdsocket.h> and not by the C library. It waits on sockets only. */
+-#  include <proto/bsdsocket.h>
+-#  define select(n, r, w, e, t) WaitSelect((n), (r), (w), (e), (t), NULL)
+-#endif
++#include "aros_select.h"
+ #include "pycore_fileutils.h"     // _Py_set_inheritable()
+ #include "pycore_time.h"          // _PyTime_FromSecondsObject()
+ 

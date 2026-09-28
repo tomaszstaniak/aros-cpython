@@ -1,0 +1,32 @@
+From 027c3eaac25d528cb013c18b789aaa86b7a76dff Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 14:29:34 +0200
+Subject: [PATCH 18/22] aros: time.localtime() with a NULL tm_zone
+
+time.localtime() and everything built on it (zipfile, logging, http
+dates) crashed in strlen(): the ABIv11 C library leaves tm_zone NULL in
+every struct tm it fills. tm_zone is now "" in that case.
+---
+ Modules/timemodule.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/Modules/timemodule.c b/Modules/timemodule.c
+index 0cf0471..7981964 100644
+--- a/Modules/timemodule.c
++++ b/Modules/timemodule.c
+@@ -487,7 +487,15 @@ tmtotuple(time_module_state *state, struct tm *p
+     SET(7, p->tm_yday + 1);        /* Want January, 1 == 1 */
+     SET(8, p->tm_isdst);
+ #ifdef HAVE_STRUCT_TM_TM_ZONE
++#ifdef __AROS__
++    /* The ABIv11 C library declares tm_zone but leaves it NULL in every
++       struct tm it fills (localtime(), gmtime() and their _r forms); the
++       other readers of tm_zone in this file already allow for NULL. */
++    SET_ITEM(9, PyUnicode_DecodeLocale(p->tm_zone ? p->tm_zone : "",
++                                       "surrogateescape"));
++#else
+     SET_ITEM(9, PyUnicode_DecodeLocale(p->tm_zone, "surrogateescape"));
++#endif
+     SET(10, p->tm_gmtoff);
+ #else
+     SET_ITEM(9, PyUnicode_DecodeLocale(zone, "surrogateescape"));

@@ -1,0 +1,29 @@
+From d3bd43137c0dced5a54e812508cfbe042ed753f0 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 11:08:20 +0200
+Subject: [PATCH 05/22] aros: UTF-8 locale and filesystem encoding
+
+The ABIv11 C library has no setlocale() and no nl_langinfo(), and the
+SDK no langinfo.h, so CPython cannot ask for the locale encoding. Use
+the path CPython already has for Android and VxWorks: UTF-8 for the
+locale and the filesystem encoding. Bytes that are not UTF-8, such as
+Latin-1 file names, still round-trip through surrogateescape.
+---
+ Include/pyport.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/Include/pyport.h b/Include/pyport.h
+index 2c8567f..8922ff4 100644
+--- a/Include/pyport.h
++++ b/Include/pyport.h
+@@ -529,8 +529,9 @@ extern "C" {
+ #  endif
+ #endif
+ 
+-#if defined(__ANDROID__) || defined(__VXWORKS__)
++#if defined(__ANDROID__) || defined(__VXWORKS__) || defined(__AROS__)
+    // Use UTF-8 as the locale encoding, ignore the LC_CTYPE locale.
++   // ABIv11 AROS has no setlocale() or nl_langinfo() at all.
+    // See _Py_GetLocaleEncoding(), PyUnicode_DecodeLocale()
+    // and PyUnicode_EncodeLocale().
+ #  define _Py_FORCE_UTF8_LOCALE

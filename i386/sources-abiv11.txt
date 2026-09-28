@@ -1,0 +1,8 @@
+# file                              sha256                                                            url
+Python-3.14.7.tar.xz                3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81  https://www.python.org/ftp/python/3.14.7/Python-3.14.7.tar.xz
+openssl-4.0.1.tar.gz                2db3f3a0d6ea4b59e1f094ace2c8cd536dffb87cdc39084c5afa1e6f7f37dd09  https://github.com/openssl/openssl/releases/download/openssl-4.0.1/openssl-4.0.1.tar.gz
+jitterentropy-v3.7.0.tar.gz         f5eaccc9d2977c83308651be9379f09f34348398f419e8f8b5bbd95928c777ed  https://github.com/smuellerDD/jitterentropy-library/archive/refs/tags/v3.7.0.tar.gz
+xz-5.8.3.tar.gz                     3d3a1b973af218114f4f889bbaa2f4c037deaae0c8e815eec381c3d546b974a0  https://github.com/tukaani-project/xz/releases/download/v5.8.3/xz-5.8.3.tar.gz
+pyfiglet-1.0.4-py3-none-any.whl     65b57b7a8e1dff8a67dc8e940a117238661d5e14c3e49121032bd404d9b2b39f  https://files.pythonhosted.org/packages/py3/p/pyfiglet/pyfiglet-1.0.4-py3-none-any.whl
+cacert-2026-08-13.pem               f66dff1bdf8f96060b8177976f8b7d9254bc89bc4db933d769f7384d28480bc9  https://curl.se/ca/cacert-2026-08-13.pem
+SDK-202609-any-x86_64.zip           8a4e5f09f027844501c1421bd3948c4e55ceb005a16b0bd3575276f40c8977e6  https://github.com/deadwood2/AROS/releases/download/ABIv11_2026.09/SDK-202609-any-x86_64.zip

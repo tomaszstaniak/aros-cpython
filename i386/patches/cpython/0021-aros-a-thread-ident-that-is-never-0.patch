@@ -1,0 +1,35 @@
+From 52d8743ffeefe42303b4a2dbe15bc8d2fc3f1063 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Fri, 25 Sep 2026 15:35:57 +0200
+Subject: [PATCH 21/22] aros: a thread ident that is never 0
+
+AROS libpthread gives the main thread the number 0, and CPython's
+recursive mutexes read an owner of 0 as unowned. Measured on the guest:
+threading.get_ident() was 0 in the main thread, an RLock held there
+printed as unlocked with count 0, and catch_warnings() raised "warnings
+lock is not held", which stopped pip. The ident is the pthread number
+plus one.
+---
+ Python/thread_pthread.h | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/Python/thread_pthread.h b/Python/thread_pthread.h
+index 5fa35e8..7dcc182 100644
+--- a/Python/thread_pthread.h
++++ b/Python/thread_pthread.h
+@@ -310,6 +310,15 @@ do_start_joinable_thread(void (*func)(void *), void *arg, pthread_t* out_id)
+    non-arithmetic, e.g., musl typedefs it as a pointer. */
+ static PyThread_ident_t
+ _pthread_t_to_ident(pthread_t value) {
++#ifdef __AROS__
++    /* AROS libpthread numbers threads from 0, and 0 is the main thread
++       (threading.get_ident() gave 0 there, 1 in the first worker). CPython's
++       recursive mutexes store 0 as "no owner", so a lock held by the main
++       thread looked free: an RLock held in main printed as unlocked with
++       count 0, and warnings.catch_warnings() raised "warnings lock is not
++       held". One more than the pthread number is still unique, never 0. */
++    return (PyThread_ident_t)(uintptr_t)value + 1;
++#endif
+ // Cast through an integer type of the same size to avoid sign-extension.
+ #if SIZEOF_PTHREAD_T == SIZEOF_VOID_P
+     return (uintptr_t) value;

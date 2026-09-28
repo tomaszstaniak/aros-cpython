@@ -1,0 +1,95 @@
+From 82194febabfceea18676c6c07c0695f9acebdf57 Mon Sep 17 00:00:00 2001
+From: tomaszstaniak <68373859+tomaszstaniak@users.noreply.github.com>
+Date: Sun, 27 Sep 2026 21:41:33 +0200
+Subject: [PATCH] aros: convert a thread ident back before calling pthread
+ functions
+
+Patch 0021 makes a thread's ident the pthread number plus one, so that the
+main thread's ident is never 0. Three places cast an ident straight back to
+pthread_t: faulthandler's thread name in the traceback dump
+(Python/traceback.c), signal.pthread_kill() and time.pthread_getcpuclockid().
+They then named a thread one past the real one. Measured on ABIv11 2026.09:
+test_asyncio.test_buffered_proto hung, regrtest's timeout made faulthandler
+dump the threads, and pthread_getname_np() on the thread after the last one
+stopped the machine with "Illegal address access" in pthread_getname_np.
+_PyThread_IdentToPthread() undoes the conversion; on other platforms it is
+the cast it replaces.
+---
+ Include/internal/pycore_pythread.h | 11 +++++++++++
+ Modules/signalmodule.c             |  2 +-
+ Modules/timemodule.c               |  3 ++-
+ Python/traceback.c                 |  2 +-
+ 4 files changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/Include/internal/pycore_pythread.h b/Include/internal/pycore_pythread.h
+index 8457b0734..c4da57c46 100644
+--- a/Include/internal/pycore_pythread.h
++++ b/Include/internal/pycore_pythread.h
+@@ -122,6 +122,17 @@ typedef Py_uintptr_t PyThread_handle_t;
+ #define PY_FORMAT_THREAD_IDENT_T "llu"
+ #define Py_PARSE_THREAD_IDENT_T "K"
+ 
++/* The pthread_t a thread ident (threading.get_ident(),
++   PyThreadState.thread_id) was made from. On AROS the ident is the pthread
++   number plus one, not the pthread_t itself (see _pthread_t_to_ident() in
++   Python/thread_pthread.h), so code that hands an ident back to a pthread
++   function must convert it. */
++#ifdef __AROS__
++#  define _PyThread_IdentToPthread(ident) ((pthread_t)(uintptr_t)((ident) - 1))
++#else
++#  define _PyThread_IdentToPthread(ident) ((pthread_t)(ident))
++#endif
++
+ PyAPI_FUNC(PyThread_ident_t) PyThread_get_thread_ident_ex(void);
+ 
+ /* Thread joining APIs.
+diff --git a/Modules/signalmodule.c b/Modules/signalmodule.c
+index ee279703c..86791f194 100644
+--- a/Modules/signalmodule.c
++++ b/Modules/signalmodule.c
+@@ -1291,7 +1291,7 @@ signal_pthread_kill_impl(PyObject *module, unsigned long thread_id,
+         return NULL;
+     }
+ 
+-    err = pthread_kill((pthread_t)thread_id, signalnum);
++    err = pthread_kill(_PyThread_IdentToPthread(thread_id), signalnum);
+     if (err != 0) {
+         errno = err;
+         PyErr_SetFromErrno(PyExc_OSError);
+diff --git a/Modules/timemodule.c b/Modules/timemodule.c
+index 798196483..f74503818 100644
+--- a/Modules/timemodule.c
++++ b/Modules/timemodule.c
+@@ -4,6 +4,7 @@
+ #include "pycore_fileutils.h"     // _Py_BEGIN_SUPPRESS_IPH
+ #include "pycore_moduleobject.h"  // _PyModule_GetState()
+ #include "pycore_namespace.h"     // _PyNamespace_New()
++#include "pycore_pythread.h"      // _PyThread_IdentToPthread()
+ #include "pycore_runtime.h"       // _Py_ID()
+ #include "pycore_time.h"          // _PyTimeFraction
+ 
+@@ -372,7 +373,7 @@ time_pthread_getcpuclockid(PyObject *self, PyObject *args)
+     if (!PyArg_ParseTuple(args, "k:pthread_getcpuclockid", &thread_id)) {
+         return NULL;
+     }
+-    err = pthread_getcpuclockid((pthread_t)thread_id, &clk_id);
++    err = pthread_getcpuclockid(_PyThread_IdentToPthread(thread_id), &clk_id);
+     if (err) {
+         errno = err;
+         PyErr_SetFromErrno(PyExc_OSError);
+diff --git a/Python/traceback.c b/Python/traceback.c
+index 48be6f5ad..31eb08842 100644
+--- a/Python/traceback.c
++++ b/Python/traceback.c
+@@ -1193,7 +1193,7 @@ write_thread_name(int fd, PyThreadState *tstate)
+ #ifndef MS_WINDOWS
+ #if defined(HAVE_PTHREAD_GETNAME_NP) || defined(HAVE_PTHREAD_GET_NAME_NP)
+     char name[100];
+-    pthread_t thread = (pthread_t)tstate->thread_id;
++    pthread_t thread = _PyThread_IdentToPthread(tstate->thread_id);
+ #ifdef HAVE_PTHREAD_GETNAME_NP
+     int rc = pthread_getname_np(thread, name, Py_ARRAY_LENGTH(name));
+ #else /* defined(HAVE_PTHREAD_GET_NAME_NP) */
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,12 @@
+.key args/F
+.bra {
+.ket }
+; Python needs a deep stack; the default 256 KB dies inside the parser.
+Stack 16000000
+; OpenSSL's compiled-in default CA path is a build path that does not exist on
+; the target. Point it at the CA bundle shipped in this package.
+SetEnv SSL_CERT_FILE /Python/ssl/ca-bundle.crt
+; No -u here: on ABIv11 -u left the Shell's own output handle unbuffered
+; after exit. Whether ABIv0 behaves the same was not checked; the launcher
+; is kept identical to the x86_64 one.
+Python:python {args}
