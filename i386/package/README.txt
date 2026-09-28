@@ -21,9 +21,9 @@ WORKS                                    DOES NOT WORK (YET)
   zlib, gzip, bz2, lzma, zip, tar            sqlite3 (L4)
   HTTPS with certificate verification      pip: source distributions (L5)
   threads, locks, queues, thread pools
-  pip: installing pure-Python wheels     Not checked on i386: Ctrl-C and
-  several interpreters at once             Break (on x86_64 they do not stop
-  many runs in one Shell                   a script)
+  pip: installing pure-Python wheels     Ctrl-C and Break (L1)
+  several interpreters at once
+  many runs in one Shell
 
 Inside: the interpreter (statically linked, one file), the pure-Python
 standard library, OpenSSL 4.0.1 with a CA bundle, liblzma, pip 26.2.1, two
@@ -100,6 +100,8 @@ That is expected: all extension modules are built in.
 KNOWN LIMITS
 ------------
 Measured on the test system; details in ACCEPTANCE.txt.
+  L1  A running script cannot be interrupted: Ctrl-C and `Break <n> C` do
+      not stop it. A script that does not end by itself needs a reboot.
   L2  Sockets work only in the main thread. In any other thread, name
       lookup fails (gaierror "getaddrinfo failed") and socket() fails with
       OSError errno 0.
@@ -117,13 +119,12 @@ Measured on the test system; details in ACCEPTANCE.txt.
   L15 ABIv0's unsetenv() returns garbage. This interpreter ignores it, so
       del os.environ[...] works, but os.unsetenv() cannot report errors.
   L16 Some ABIv0 C library calls fail without an error code; Python then
-      reports OSError errno 0 ("Error"). The operation failed either way.
+      reports OSError errno 0 ("Error").
   Lib/test (CPython's own test suite) does not pass as a whole; one pass
   is summarised in ACCEPTANCE.txt, section D.
-  Not checked on i386: interrupting a script with Ctrl-C or Break, python
-  -u, network readiness over many boots. On x86_64, Ctrl-C and Break do
-  not interrupt a script and -u disturbs the Shell's output; assume the
-  same here until checked.
+  Not checked on i386: python -u and network readiness over many boots. On
+  x86_64, -u disturbs the Shell's output afterwards; the launcher does not
+  use it.
   Random numbers (os.urandom, secrets, ssl) come from OpenSSL, seeded from
   CPU timing jitter (jitterentropy): ABIv0 has no operating system entropy
   source.
