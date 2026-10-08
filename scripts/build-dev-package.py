@@ -13,7 +13,6 @@ import tempfile
 import zipfile
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
-NAME = 'aros-cpython-3.14.7-abiv11-0.1.0-dev'
 
 
 def main():
@@ -47,6 +46,9 @@ def main():
                         str(build / 'python.exe')], check=True)
         sha = hashlib.sha256(interpreter.read_bytes()).hexdigest()
         provenance = (REPO / 'package/interpreter-provenance.txt').read_text()
+        identity = dict(line.split('=', 1) for line in provenance.splitlines()
+                        if line and not line.startswith('#') and '=' in line)
+        name = f"aros-cpython-{identity['python_version']}-abiv11-{identity['port_version']}-dev"
         expected = next(line.split('=', 1)[1] for line in provenance.splitlines()
                         if line.startswith('interpreter_sha256='))
         if sha != expected:
@@ -60,7 +62,7 @@ def main():
             cwd=build, text=True).splitlines()
         source_root = (build / expanded[0]).resolve()
         flags = expanded[1].split()
-        root = temp / NAME
+        root = temp / name
         shutil.copytree(install / 'include', root / 'include')
         lib = root / 'lib'
         lib.mkdir()
@@ -124,23 +126,23 @@ def main():
                            p.relative_to(root).as_posix() + '\n' for p in files)
         (root / 'MANIFEST.sha256').write_text(manifest)
         args.output.mkdir(parents=True, exist_ok=True)
-        archive = args.output / (NAME + '.tar.gz')
+        archive = args.output / (name + '.tar.gz')
         # Fix metadata and gzip timestamp so a repeated package is byte-identical.
         with archive.open('wb') as stream, gzip.GzipFile(fileobj=stream, mode='wb', mtime=0, filename='') as compressed:
             with tarfile.open(fileobj=compressed, mode='w') as tar:
                 for p in sorted(root.rglob('*')):
                     if p.is_file():
                         data = p.read_bytes()
-                        info = tarfile.TarInfo(NAME + '/' + p.relative_to(root).as_posix())
+                        info = tarfile.TarInfo(name + '/' + p.relative_to(root).as_posix())
                         info.size, info.mode, info.mtime = len(data), 0o644, 1790294400
                         tar.addfile(info, io.BytesIO(data))
         checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
         (args.output / (archive.name + '.sha256')).write_text(checksum + '  ' + archive.name + '\n')
-        zip_path = args.output / (NAME + '.zip')
+        zip_path = args.output / (name + '.zip')
         with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zipped:
             for p in sorted(root.rglob('*')):
                 if p.is_file():
-                    info = zipfile.ZipInfo(NAME + '/' + p.relative_to(root).as_posix(),
+                    info = zipfile.ZipInfo(name + '/' + p.relative_to(root).as_posix(),
                                            (2026, 9, 25, 0, 0, 0))
                     info.compress_type = zipfile.ZIP_DEFLATED
                     info.external_attr = 0o100644 << 16

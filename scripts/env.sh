@@ -21,6 +21,7 @@ export AROS_ABI_MAJOR=11          # ENV:ABI on ABIv11 systems
 export DEPS="$WORK/deps"          # static OpenSSL, jitterentropy, liblzma
 export BUILD_PYTHON="${BUILD_PYTHON:-$(command -v python3.14)}"
 export PY_VER=3.14.7
+export PORT_VER="$(sed -n 's/^port_version=//p' "$REPO/package/interpreter-provenance.txt")"
 export SRC="$WORK/src/Python-$PY_VER"
 export BUILD_DIR="$WORK/build"
 # GNU make 4 (CPython and OpenSSL); macOS's /usr/bin/make is 3.81.

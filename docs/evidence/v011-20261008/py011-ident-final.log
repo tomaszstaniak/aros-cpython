@@ -1,0 +1,16 @@
+sys.platform       aros
+os.uname           ('AROS', 'arosbox.arosnet', '12.1', '41 Jan 30 2026', 'x86_64')
+get_platform       aros_abiv11-x86_64
+AROS_ABI           abiv11
+MULTIARCH          x86_64-aros-abiv11
+SOABI              cpython-314-x86_64-aros-abiv11
+EXT_SUFFIX         .cpython-314-x86_64-aros-abiv11.so
+HOST_GNU_TYPE      x86_64-pc-aros
+LIBPL              /Python/lib/python3.14/config-3.14-x86_64-aros-abiv11
+sysconfigdata      _sysconfigdata__aros_x86_64-aros-abiv11
+pip tags           48 ['cp314-cp314-aros_abiv11_x86_64', 'cp314-abi3-aros_abiv11_x86_64', 'cp314-none-aros_abiv11_x86_64']
+pip platform tags  ['any', 'aros_abiv11_x86_64']
+ENV:ABI            unreadable: [Errno 2] No such file or directory: '/ENV/ABI'
+executable         /Python/python 23290208
+sha256             570106329b02cc769d5374435fdcafbd728505634ca6e6ea1008ad5211c8bf5f
+IDPROBE-END

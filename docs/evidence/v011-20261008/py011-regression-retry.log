@@ -1,0 +1,12 @@
+THREAD-IDENT START 3.14.7 (main, Sep 25 2026, 00:00:00) [GCC 10.5.0]
+PASS dump cycle 0 workers 4
+PASS dump cycle 1 workers 4
+PASS dump cycle 2 workers 4
+PASS dump cycle 3 workers 4
+PASS dump cycle 4 workers 4
+PASS dump cycle 5 workers 4
+PASS dump cycle 6 workers 4
+PASS dump cycle 7 workers 4
+LIMIT pthread_kill: SDK stub returns EINVAL
+LIMIT pthread_getcpuclockid: API not built on this target
+THREAD-IDENT PASS: 8 cycles, 32 workers, 8 all-thread dumps

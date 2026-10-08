@@ -1,4 +1,4 @@
-CPython 3.14.7 for AROS x86_64 ABIv11 - 0.1.0 preview
+CPython 3.14.7 for AROS x86_64 ABIv11 - 0.1.1 preview
 =====================================================
 
 Python 3.14.7 for 64-bit AROS with the ABIv11 system interface: the ABIv11
@@ -64,11 +64,11 @@ image: only the ZIP's own name changes there.
 
 On the host computer:
   1. Unpack the archive:
-       tar -xzf aros-cpython-3.14.7-abiv11-0.1.0.tar.gz
-     This gives aros-cpython-3.14.7-abiv11-0.1.0/ with the Python/ directory
+       tar -xzf aros-cpython-3.14.7-abiv11-0.1.1.tar.gz
+     This gives aros-cpython-3.14.7-abiv11-0.1.1/ with the Python/ directory
      inside. The .lha has the same content.
   2. Make a ZIP that contains the Python directory, for example
-       cd aros-cpython-3.14.7-abiv11-0.1.0 && zip -r -X ../python-abiv11.zip Python
+       cd aros-cpython-3.14.7-abiv11-0.1.1 && zip -r -X ../python-abiv11.zip Python
      and bring it to AROS (CD image, FAT share, network).
 
 In an AROS Shell (SYS:Python must not exist yet):

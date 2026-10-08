@@ -6,8 +6,8 @@ You run `python` and write ordinary Python code. This repository holds
 everything needed to rebuild it: the patches, build scripts, package files,
 tests and the reproducers for the platform problems found on the way.
 
-**0.1.0 preview** is the first version, for testers and for running
-scripts. Binaries: [releases](https://github.com/tomaszstaniak/aros-cpython/releases).
+**0.1.1 preview** includes the thread-ident correction and matching runtime
+and development packages (headers, static libraries, CMake and pkg-config). Binaries: [releases](https://github.com/tomaszstaniak/aros-cpython/releases).
 Three limits matter most:
 
 - **L1: a running script cannot be interrupted.** Ctrl-C and `Break` do not
@@ -26,7 +26,8 @@ Work on the port continues; see [Further work](#further-work).
 
 ## What works and what does not
 
-Measured on the ABIv11 2026.09 release in QEMU; details in
+The broad 0.1.0 checks used ABIv11 2026.09 in QEMU. The focused 0.1.1
+regression and embedding checks used AROS One 1.3 ABIv11; details in
 [package/ACCEPTANCE.txt](package/ACCEPTANCE.txt).
 
 | Works | Does not work |
@@ -108,7 +109,7 @@ scripts/build-package.sh      # archives in work/dist
 
 | Path | Contents |
 |---|---|
-| `patches/cpython/` | 22 patches on CPython 3.14.7, one change each, with the reason in the message |
+| `patches/cpython/` | 23 patches on CPython 3.14.7, one change each, with the reason in the message |
 | `patches/*.diff` | OpenSSL 4.0.1, jitterentropy 3.7.0, and pip 26.2.1 (loading without `mmap`) |
 | `config/config.site` | answers for cross-configure, each with its reason |
 | `scripts/` | environment, download, build and packaging |

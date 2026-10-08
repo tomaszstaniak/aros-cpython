@@ -69,4 +69,6 @@ tested. Dynamic extension loading and all runtime 0.1.0 limitations remain.
 Patch 0023's thread-ident correction is deliberately absent from this matching
 companion and should be released with a matching future runtime package.
 
-The archives are prepared locally, not published to GitHub.
+Published as additional assets of the existing v0.1.0 release on 2026-10-08:
+https://github.com/tomaszstaniak/aros-cpython/releases/tag/v0.1.0
+The runtime assets were preserved.

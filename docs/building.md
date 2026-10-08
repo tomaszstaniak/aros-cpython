@@ -62,8 +62,8 @@ a mismatch. `WORK` moves the whole working tree elsewhere.
 The build fixes its time (`SOURCE_DATE_EPOCH` in `scripts/env.sh`) and keeps
 host paths out of the binaries (`-ffile-prefix-map` in the compiler
 wrappers, a relative source directory, OpenSSL installed from a staging
-prefix). Two builds from fresh clones in different directories gave the same
-interpreter and the same archives:
+prefix). For 0.1.0, two builds from fresh clones in different directories gave the same
+interpreter and archives:
 
 | File | SHA-256 |
 |---|---|
@@ -85,34 +85,26 @@ whose SHA-256 differs from `package/interpreter-provenance.txt`.
 
 After `scripts/build.sh`, build the matching x86-64 ABIv11 development archive:
 
-Use the release's patch series 0001-0022. Current master also includes 0023
-(a thread-ident correction added after 0.1.0). To prepare the exact 0.1.0
-source from current master, run `prepare-source.sh`, then reverse that patch
-before configuring and building:
-
-```sh
-patch -R -d work/src/Python-3.14.7 -p1 \
-  -i "$PWD/patches/cpython/0023-aros-convert-a-thread-ident-back-before-calling-pthr.patch"
-```
-
-This is only for reproducing the existing release. Keep 0023 in future releases;
-the development companion inherits the known limitations of runtime 0.1.0.
+Version 0.1.1 uses patches 0001-0023, including the thread-ident correction.
+Build runtime and development packages from the same build/install tree.
+To reproduce the historical 0.1.0 companion, use its provenance and omit
+patch 0023; do not pair its library with the 0.1.1 interpreter.
 
 ```sh
 PATH="$AROS_TOOLCHAIN:$PATH" python3 scripts/build-dev-package.py
 ```
 
-The packager checks the stripped interpreter against the published 0.1.0 hash.
+The packager checks the stripped interpreter against the hash in `package/interpreter-provenance.txt`.
 It reads the build's expanded module link flags, includes its private helper
 archives and custom dependency archives, removes debug information, and writes
 relocatable CMake and pkg-config interfaces. SDK libraries remain SDK dependencies.
-The runtime package is unchanged. Instructions and an embedding example ship in
+Version names come from the same provenance file. Instructions and an embedding example ship in
 `package/dev/`; GemRB verification remains separate.
 
 Run the host checks and compile/link the example from a relocated extraction:
 
 ```sh
-DEV_ARCHIVE="$PWD/work/dist/aros-cpython-3.14.7-abiv11-0.1.0-dev.tar.gz" \
+DEV_ARCHIVE="$PWD/work/dist/aros-cpython-3.14.7-abiv11-0.1.1-dev.tar.gz" \
   python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 

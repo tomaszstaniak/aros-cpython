@@ -1,3 +1,32 @@
+CPython 3.14.7 for AROS x86_64 ABIv11 0.1.1 preview
+==================================================
+
+Interpreter SHA-256:
+  570106329b02cc769d5374435fdcafbd728505634ca6e6ea1008ad5211c8bf5f
+Built with patches 0001-0023, GCC 10.5.0 and the ABIv11 2026.09 SDK.
+Runtime and development packages use the same build/install tree.
+
+Focused checks on 2026-10-08 in QEMU, AROS One 1.3 ABIv11, 2 GB,
+1 MiB Shell stack:
+PASS thread_ident11.py: eight cycles, 32 workers, eight all-thread dumps;
+     every dump includes the four live workers, followed by clean joins.
+PASS statically linked embedding example: initialization, builtin host
+     module, JSON, Decimal, SHA-256, lzma/bz2/zlib, SQLite, OpenSSL version,
+     finalization; return code 0.
+LIMIT signal.pthread_kill: SDK stub returns EINVAL; signal delivery is not
+      implemented and the argument conversion is not observable here.
+LIMIT time.pthread_getcpuclockid: not built on this target.
+SKIP GemRB, physical hardware, complete Lib/test and broad networking
+     regression. Existing limits below still apply.
+
+Host: four development-package checks pass, including archive manifests,
+relocated CMake and pkg-config consumer compilation/linking. The embedding
+binary has no undefined symbols. Both runtime and development packages
+validate interpreter provenance.
+
+The following is historical 0.1.0 acceptance. It was not rerun in full for
+0.1.1; statements referring to "this interpreter" below mean 0.1.0.
+
 CPython 3.14.7 for AROS x86_64 ABIv11 0.1.0 preview - what was tested
 ======================================================================
 

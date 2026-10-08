@@ -9,11 +9,12 @@ to recover from.
 ## Recommended sequence
 
 1. **Release the existing thread-ident correction with matching runtime/dev
-   packages.** Patch 0023 already corrects conversions in traceback thread
+   packages (implemented in 0.1.1).** Patch 0023 already corrects conversions in traceback thread
    naming, signal.pthread_kill and time.pthread_getcpuclockid. Its header records
-   the ABIv11 faulthandler crash. Verify the actual crash regression and API
-   calls, then update provenance and both packages together. Do not silently
-   replace the binary inside version 0.1.0.
+   the ABIv11 faulthandler crash. Focused checks cover eight all-thread dumps
+   with 32 workers and the matching static embedding example. pthread_kill
+   remains an SDK EINVAL stub and pthread_getcpuclockid is unavailable.
+   Version 0.1.0 is preserved; further work starts at item 2.
 
 2. **Make Ctrl-C and Break produce KeyboardInterrupt.** Acceptance L1 records
    that neither interrupts a sleeping script; the previous mainline backlog

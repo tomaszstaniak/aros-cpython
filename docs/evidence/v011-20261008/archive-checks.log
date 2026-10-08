@@ -1,0 +1,3 @@
+PASS repeat packaging: all five archives byte-identical
+PASS runtime TAR and ZIP: 1091 files byte-identical
+PASS packaged interpreter hash matches provenance

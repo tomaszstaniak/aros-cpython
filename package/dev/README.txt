@@ -1,7 +1,7 @@
 CPython 3.14.7 development package - x86-64 AROS ABIv11
 =====================================================
 
-Companion to aros-cpython-3.14.7-abiv11-0.1.0. Requires the ABIv11
+Companion to aros-cpython-3.14.7-abiv11-0.1.1. Requires the ABIv11
 2026.09 SDK and a matching x86_64-aros toolchain (tested: GCC 10.5.0).
 Do not mix with mainline ABIv1, i386 or other ABI builds.
 
@@ -57,11 +57,5 @@ builtin host module and checks JSON, Decimal, SHA-256, compression and SQLite.
 It imports SSL and checks its version; it does not test TLS networking.
 Dynamic extension loading is unchanged from the runtime release.
 
-This companion intentionally matches runtime 0.1.0 (patches 0001-0022).
-Post-release patch 0023 corrects thread identifiers passed to pthread functions;
-it is not included here. In particular faulthandler thread dumps and
-signal.pthread_kill have a known thread-ident defect in this version. A future
-runtime and development release should carry that correction together.
-
-MANIFEST.sha256 records the unpacked files. interpreter-provenance.txt identifies
-the matching runtime build; the packager rejects an interpreter hash mismatch.
+This companion matches runtime 0.1.1 (patches 0001-0023), including the
+thread-ident correction used by faulthandler and pthread API calls.
