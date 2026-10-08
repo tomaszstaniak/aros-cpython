@@ -81,6 +81,44 @@ python3 scripts/compare-binaries.py release/Python/python work/build/python.exe
 `RELEASE=1 scripts/build-package.sh` refuses to package an interpreter
 whose SHA-256 differs from `package/interpreter-provenance.txt`.
 
+## Development package
+
+After `scripts/build.sh`, build the matching x86-64 ABIv11 development archive:
+
+Use the release's patch series 0001-0022. Current master also includes 0023
+(a thread-ident correction added after 0.1.0). To prepare the exact 0.1.0
+source from current master, run `prepare-source.sh`, then reverse that patch
+before configuring and building:
+
+```sh
+patch -R -d work/src/Python-3.14.7 -p1 \
+  -i "$PWD/patches/cpython/0023-aros-convert-a-thread-ident-back-before-calling-pthr.patch"
+```
+
+This is only for reproducing the existing release. Keep 0023 in future releases;
+the development companion inherits the known limitations of runtime 0.1.0.
+
+```sh
+PATH="$AROS_TOOLCHAIN:$PATH" python3 scripts/build-dev-package.py
+```
+
+The packager checks the stripped interpreter against the published 0.1.0 hash.
+It reads the build's expanded module link flags, includes its private helper
+archives and custom dependency archives, removes debug information, and writes
+relocatable CMake and pkg-config interfaces. SDK libraries remain SDK dependencies.
+The runtime package is unchanged. Instructions and an embedding example ship in
+`package/dev/`; GemRB verification remains separate.
+
+Run the host checks and compile/link the example from a relocated extraction:
+
+```sh
+DEV_ARCHIVE="$PWD/work/dist/aros-cpython-3.14.7-abiv11-0.1.0-dev.tar.gz" \
+  python3 -m unittest discover -s tests -p 'test_*.py'
+```
+
+`AROS_TOOLCHAIN` and `AROS_SDK` must be exported for the artifact test. Guest
+execution is a separate check; follow the shared testbench reservation rules.
+
 ## Notes on the build
 
 - `config/config.site` answers what configure cannot find out when

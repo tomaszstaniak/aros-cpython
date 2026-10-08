@@ -1,0 +1,21 @@
+..-- The C compiler identification is GNU 10.5.0
+System is unknown to cmake, create:
+Platform/AROS to use this system, please post your config file on discourse.cmake.org so it can be added to cmake
+-- Detecting C compiler ABI info
+System is unknown to cmake, create:
+Platform/AROS to use this system, please post your config file on discourse.cmake.org so it can be added to cmake
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /Users/tumash/Work/AROS/toolchain/x86_64-aros-gcc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /var/folders/8r/d4tdy1r159z4svvkvcfwrq5m0000gn/T/python-dev-ehyhti1k/build
+[ 50%] Building C object CMakeFiles/embed.dir/embed.c.obj
+[100%] Linking C executable embed
+[100%] Built target embed
+..
+----------------------------------------------------------------------
+Ran 4 tests in 1.917s
+
+OK

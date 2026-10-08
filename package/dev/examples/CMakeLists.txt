@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.25)
+project(aros_python_embed C)
+find_package(AROSPython CONFIG REQUIRED)
+add_executable(embed embed.c)
+target_link_libraries(embed PRIVATE AROSPython::Python)
