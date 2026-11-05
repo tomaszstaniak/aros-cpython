@@ -96,3 +96,12 @@ whose SHA-256 differs from `package/interpreter-provenance.txt`.
   `__STRICT_ANSI__` is not defined, so the build uses `-std=gnu11`.
 - `_locale` is built without gettext: the SDK's `libintl.a` and `libiconv.a`
   are GNU gettext and GNU libiconv (LGPL) and would be linked statically.
+- Link the static `libpython3.14.a` only with the SDK it was compiled
+  against. `Python/thread_pthread.h` keeps a `pthread_attr_t` on the stack
+  (the AROS `pthread.h` defines `_POSIX_THREAD_ATTR_STACKSIZE`), and
+  `libpthread.a` is a static library that comes from the embedding
+  program's SDK. Mainline AROS (ABIv1) commit `ddd41377d3` (2026-10-30)
+  grew `pthread_attr_t` from 32 to 168 bytes, and `pthread_attr_init()`
+  clears the whole structure. An archive built before that commit and
+  linked with a later SDK therefore overwrites the stack at every thread
+  start. The ABIv11 2026.09 SDK still has the 32-byte layout.
